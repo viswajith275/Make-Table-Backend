@@ -1,0 +1,20 @@
+# Ignore local virtual environments
+.venv
+venv/
+env/
+
+# Ignore git
+.git
+.gitignore
+
+# Ignore cache
+__pycache__
+*.pyc
+.pytest_cache
+.uv_cache
+
+# Ignore Docker/DevOps files
+Dockerfile
+docker-compose.yml
+.env
+README.md
