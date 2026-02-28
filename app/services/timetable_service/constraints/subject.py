@@ -8,22 +8,22 @@ def apply_subject_minimum_daily_limit(builder: TimeTableGenerator) -> None:
 
     for assignment in builder.assignments:
 
-        min_subject_daily_limit = getattr(assignment.subject, 'min_classes_day', None)
+        min_subject_daily_val = getattr(assignment.subject, 'min_classes_day', None)
 
         # Subject should occur atleast specified amount per day
 
-        if min_subject_daily_limit is not None:
+        if min_subject_daily_val is not None:
 
             for d in builder.days:
 
-                error_msg = f"Min daily classes does not meet for {assignment.subject.name} on {builder.index_to_day[d].value} (required: {min_subject_daily_limit})"
+                error_msg = f"Min daily classes does not meet for {assignment.subject.name} on {builder.index_to_day[d].value} (required: {min_subject_daily_val}"
                 slack = builder.create_slack(
                     name="subject minimum classes per day",
                     error_msg=error_msg,
                     weight=10000
                 )
 
-                builder.model.add(sum(builder.shifts[(assignment.id, d, s)] for s in builder.slots) + slack>= min_subject_daily_limit)
+                builder.model.add(sum(builder.shifts[(assignment.id, d, s)] for s in builder.slots) + slack >= min_subject_daily_val)
 
 
 
@@ -54,17 +54,141 @@ def apply_subject_minimum_weekly_limit(builder: TimeTableGenerator) -> None:
 
     for assignment in builder.assignments:
 
-        min_subject_weekly_limit = getattr(assignment.subject, 'min_classes_weekly', None)
+        min_subject_weekly_val = getattr(assignment.subject, 'min_classes_weekly', None)
 
         # Subject should occur atleast specified amount per week
 
-        if min_subject_weekly_limit is not None:
+        if min_subject_weekly_val is not None:
 
-            error_msg = f"Min weekly classes does not meet for {assignment.subject.name} (required: {min_subject_weekly_limit})"
+            error_msg = f"Min weekly classes does not meet for {assignment.subject.name} (required: {min_subject_weekly_val})"
             slack = builder.create_slack(
                 name="subject minimum classes per week",
                 error_msg=error_msg,
                 weight=10000
             )
 
-            builder.model.add(sum(builder.shifts[(assignment.id, d, s)] for s in builder.slots for d in builder.days) + slack >= min_subject_weekly_limit)
+            builder.model.add(sum(builder.shifts[(assignment.id, d, s)] for s in builder.slots for d in builder.days) + slack >= min_subject_weekly_val)
+
+
+
+def apply_subject_maximum_weekly_limit(builder: TimeTableGenerator) -> None:
+
+    for assignment in builder.assignments:
+
+        max_subject_weekly_limit = getattr(assignment.subject, 'max_classes_weekly', None)
+
+        # Subject should not occur more than specified amount per week
+
+        if max_subject_weekly_limit is not None:
+
+            error_msg = f"Max weekly limit for {assignment.subject.name} (limit: {max_subject_weekly_limit})"
+            slack = builder.create_slack(
+                name="subject maximum classes per week",
+                error_msg=error_msg,
+                weight=10000
+            )
+
+            builder.model.add(sum(builder.shifts[(assignment.id, d, s)] for s in builder.slots for d in builder.days) <= max_subject_weekly_limit + slack)
+
+
+
+def apply_subject_minimum_consecutive_limit(builder: TimeTableGenerator) -> None:
+
+    for assignment in builder.assignments:
+
+        min_subject_consecutive_val = getattr(assignment.subject, 'min_classes_consecuive', None)
+
+        # Subject should not consecutively taken more than specified amount per day
+
+        if min_subject_consecutive_val is not None:
+
+            for d in builder.days:
+
+                total_slots_per_day = [builder.shifts[(assignment.id, d, s)] for s in builder.slots]
+                no_of_slotes = len(total_slots_per_day)
+
+                if min_subject_consecutive_val == 2:
+
+                    for i, cur_slot in enumerate(total_slots_per_day):
+
+                        neighbours = []
+
+                        if i > 0:
+                            neighbours.append(total_slots_per_day[i-1])
+
+                        if i < no_of_slotes-1:
+                            neighbours.append(total_slots_per_day[i+1])
+
+                        if neighbours:
+
+                            error_msg = f"Single class for {assignment.subject.name} in {assignment.class_.class_name} on {builder.index_to_day[d].value} slot {i + 1} (required: 2)"
+                            slack = builder.create_slack(
+                                name="subject minimum consecutive class",
+                                error_msg=error_msg,
+                                weight=10000
+                            )
+
+                            builder.model.add(sum(neighbours) + slack >= 1).only_enforce_if(cur_slot)
+                        
+                        else:
+
+                            error_msg = f"Imposible consecutive class {assignment.subject.name} in {assignment.class_.class_name} on {builder.index_to_day[d].value}"
+                            slack = builder.create_slack(
+                                name="subject minimum consecutive class",
+                                error_msg=error_msg,
+                                weight=10000
+                            )
+
+                            builder.model.add(slack >= 1).only_enforce_if(cur_slot)
+
+                
+                else:
+
+                    needed_consecutive_class = min_subject_consecutive_val - 1
+
+                    for s, cur_slot in enumerate(total_slots_per_day):
+
+                        is_start = builder.model.new_bool_var(f'start_{assignment.id}_{d}_{s}') # For checking if the cur_slot is starting of consecutive sequence
+
+                        if s > 0:
+
+                            prev = total_slots_per_day[s-1]
+
+                            builder.model.add_bool_and([cur_slot, prev.Not()]).only_enforce_if(is_start)
+                            builder.model.add_bool_or([cur_slot.Not(), prev]).only_enforce_if(is_start.Not())
+                        
+                        else:
+
+                            builder.model.add(is_start == cur_slot)
+
+                        has_room_for_classes = (s + needed_consecutive_class) < no_of_slotes
+
+                        if has_room_for_classes:
+
+                            for i in range(needed_consecutive_class):
+
+                                error_msg = f"Consecutive sequence broken for {assignment.subject.name} in {assignment.class_.class_name} on {builder.index_to_day[d].value}"
+                                slack = builder.create_slack(
+                                    name="subject minimum consecutive class",
+                                    error_msg=error_msg,
+                                    weight=10000
+                                )
+
+                                builder.model.add(total_slots_per_day[s + i] + slack >= 1).only_enforce_if(is_start)
+
+                        else:
+
+                            error_msg = f"Not enough slots to complete consecutive limit for {assignment.subject.name} in {assignment.class_.class_name} on {builder.index_to_day[d].value}"
+                            slack = builder.create_slack(
+                                name="subject minimum consecutive class",
+                                error_msg=error_msg,
+                                weight=10000
+                            )
+
+                            builder.model.add(slack >= 1).only_enforce_if(is_start)
+
+
+
+def apply_subject_maximum_consecutive_limit(builder: TimeTableGenerator) -> None:
+
+    pass
