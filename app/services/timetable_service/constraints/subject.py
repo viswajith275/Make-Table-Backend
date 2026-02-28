@@ -123,7 +123,7 @@ def apply_subject_minimum_consecutive_limit(builder: TimeTableGenerator) -> None
 
                             error_msg = f"Single class for {assignment.subject.name} in {assignment.class_.class_name} on {builder.index_to_day[d].value} slot {i + 1} (required: 2)"
                             slack = builder.create_slack(
-                                name="subject minimum consecutive class",
+                                name="subject single class",
                                 error_msg=error_msg,
                                 weight=10000
                             )
@@ -134,7 +134,7 @@ def apply_subject_minimum_consecutive_limit(builder: TimeTableGenerator) -> None
 
                             error_msg = f"Imposible consecutive class {assignment.subject.name} in {assignment.class_.class_name} on {builder.index_to_day[d].value}"
                             slack = builder.create_slack(
-                                name="subject minimum consecutive class",
+                                name="subject impossible for consecutive class",
                                 error_msg=error_msg,
                                 weight=10000
                             )
@@ -169,7 +169,7 @@ def apply_subject_minimum_consecutive_limit(builder: TimeTableGenerator) -> None
 
                                 error_msg = f"Consecutive sequence broken for {assignment.subject.name} in {assignment.class_.class_name} on {builder.index_to_day[d].value}"
                                 slack = builder.create_slack(
-                                    name="subject minimum consecutive class",
+                                    name="subject consecutive sequence broken",
                                     error_msg=error_msg,
                                     weight=10000
                                 )
@@ -180,7 +180,7 @@ def apply_subject_minimum_consecutive_limit(builder: TimeTableGenerator) -> None
 
                             error_msg = f"Not enough slots to complete consecutive limit for {assignment.subject.name} in {assignment.class_.class_name} on {builder.index_to_day[d].value}"
                             slack = builder.create_slack(
-                                name="subject minimum consecutive class",
+                                name="subject not enough slots",
                                 error_msg=error_msg,
                                 weight=10000
                             )
@@ -255,4 +255,46 @@ def apply_subject_per_lab(builder: TimeTableGenerator) -> None:
 
 def apply_subject_hardness(builder: TimeTableGenerator) -> None:
 
-    pass
+    # Applying that hard subjects appear earlier than easy subjects
+
+    slot_cost = {s: (s-1) ** 2 for s in builder.slots}
+
+    builder.silent_minimization.extend(
+        builder.shifts[(assignment.id, d, s)] * slot_cost[s] * builder.hardness_map[assignment.subject.hardness]
+        for s in builder.slots
+        for d in builder.days
+        for assignment in builder.assignments
+        )
+    
+
+
+def apply_hard_subject_distances(builder: TimeTableGenerator) -> None:
+
+    # Maximizing the distance between 2 hard subjects so that all hard subject dont clutter around morning times
+
+    hard_subjects = [assignment for assignment in builder.assignments if assignment.subject.hardness.value == "High" and getattr(assignment.subject, "min_classes_consecutive", 0) < 2]
+
+    for d in builder.days:
+        for i, a1 in enumerate(hard_subjects):
+            for a2 in hard_subjects[i+1:]:
+                for s1 in builder.slots:
+                    for s2 in builder.slots:
+
+                        if s1 >= s2 or abs(s2 - s1) > builder.max_concern_distance:
+                            continue
+
+                        
+                        distance = s2 - s1
+                        max_distance = len(builder.slots) - 1
+                        proximity_cost = (max_distance - distance) * builder.distance_weight
+
+                        if proximity_cost == 0:
+                            continue
+
+                        both_scheduled = builder.model.new_bool_var(f'both_{a1.id}_{a2.id}_{d}_{s1}_{s2}')
+                        builder.model.add_min_equality(both_scheduled, [
+                            builder.shifts[(a1.id, d, s1)],
+                            builder.shifts[(a2.id, d, s2)]
+                        ])
+
+                        builder.silent_minimization.append(both_scheduled * proximity_cost)
