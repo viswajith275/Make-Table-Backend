@@ -7,6 +7,8 @@ from app.schemas.generation import TeacherAssignmentData
 from app.schemas.timetable import TimeTableResponse
 # Also import timetable entry model
 from app.models.enums import WeekDayEnum, Hardness
+from app.services.timetable_service.constraints import teacher, class_, teacher_assignment, subject
+
 
 @dataclass
 class SlackTracker():
@@ -16,18 +18,16 @@ class SlackTracker():
     weight: int
 
 
-
 class TimeTableGenerator:
 
     def __init__(self, assignments: List[TeacherAssignmentData], timetable: TimeTableResponse) -> None:
 
         self.assignments = assignments
         self.slots = range(1,timetable.slots+1)
+        self.days = set([self.day_to_index[d] for d in timetable.days])
 
         self.index_to_day: dict[int, WeekDayEnum] = {i:d for i,d in enumerate(WeekDayEnum)}
         self.day_to_index: dict[WeekDayEnum, int] = {d:i for i,d in enumerate(WeekDayEnum)}
-
-        self.days = set([self.day_to_index[d] for d in timetable.days])
 
         self.model = cp_model.CpModel()
         self.shifts = {}
@@ -41,6 +41,7 @@ class TimeTableGenerator:
         }
         self.distance_weight = 5
         self.max_concern_distance = 3
+        self.weight = 50000
         
         self.error_slacks: dict[str, SlackTracker] = {}
         self.silent_minimization: list = []
@@ -77,22 +78,68 @@ class TimeTableGenerator:
         
         # Add teacher constraints
 
+        teacher.apply_one_class_per_slot(self)
+        teacher.apply_teacher_daily_limit(self)
+        teacher.apply_teacher_weekly_limit(self)
+        teacher.apply_teacher_consecutive_limit(self)
+
         return self
     
     def add_class_constraints(self):
 
         # Add class constraints
 
+        class_.apply_one_teacher_per_slot(self)
+
         return self
     
     def add_subject_constraints(self):
 
         # Add subject constraints
+        
+        subject.apply_subject_minimum_daily_limit(self)
+        subject.apply_subject_maximum_daily_limit(self)
+        subject.apply_subject_minimum_weekly_limit(self)
+        subject.apply_subject_maximum_weekly_limit(self)
+        subject.apply_subject_minimum_consecutive_limit(self)
+        subject.apply_subject_maximum_consecutive_limit(self)
+        subject.apply_subject_hardness(self)
+        subject.apply_hard_subject_distances(self)
 
         return self
     
     def add_teacher_assignment_constraints(self):
 
         # Add teacher assignment constraints
+
+        teacher_assignment.apply_assignment_morning_class_days(self)
+
+        return self
+    
+    # Maximising every shift that timetable feel filled
+
+    def maximize_allocation_of_assignment(self):
+
+        all_shifts = [self.shifts[(assignment.id, d, s)]
+                           for assignment in self.assignments
+                           for d in self.days
+                           for s in self.slots
+                           ]
+        
+        self.silent_minimization.append(sum(all_shifts) * -self.weight)
+
+        return self
+    
+    # Set objective and set up the solver
+
+    def minimize_and_compile(self):
+
+        all_shifts: list = self.silent_minimization
+
+        for slack in self.error_slacks.values():
+
+            all_shifts.append(slack.variable * slack.weight)
+
+        self.model.minimize(sum(all_shifts))
 
         return self
