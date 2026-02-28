@@ -191,4 +191,68 @@ def apply_subject_minimum_consecutive_limit(builder: TimeTableGenerator) -> None
 
 def apply_subject_maximum_consecutive_limit(builder: TimeTableGenerator) -> None:
 
+    for assignment in builder.assignments:
+
+        max_subeject_consecutive_limit = getattr(assignment.subject, 'max_classes_consecutive', None)
+
+        # Subject should not consecutively occur more than specified amount per day
+
+        if max_subeject_consecutive_limit is not None:
+
+            for d in builder.days:
+
+                total_slots_per_day = [builder.shifts[(assignment.id, d, s)] for s in builder.slots]
+                
+                for i in range(len(total_slots_per_day) - max_subeject_consecutive_limit):
+
+                    error_msg = f"Max consecutive classes exceeded for {assignment.subject.name} in {assignment.class_.class_name} on {builder.index_to_day[d].value} (limit: {max_subeject_consecutive_limit})"
+                    slack = builder.create_slack(
+                        name="subject maximum consecutive class",
+                        error_msg=error_msg,
+                        weight=10000
+                    )
+
+                    builder.model.add(sum(total_slots_per_day[i: i + max_subeject_consecutive_limit + 1]) <= max_subeject_consecutive_limit + slack)
+
+
+
+# Actually a class constraint (Dont know if there is a better way to write this)
+
+def apply_subject_per_lab(builder: TimeTableGenerator) -> None:
+
+    assigned_to_lab_class = defaultdict(list)
+
+    for assignment in builder.assignments:
+
+        is_lab_subject = getattr(assignment.subject, 'isLab', False)
+        lab_classes = getattr(assignment.subject, 'lab_classes', [])
+
+        if is_lab_subject:
+
+            for c in lab_classes:
+
+                assigned_to_lab_class[c.class_name].append(assignment)
+
+    for class_, class_assignments in assigned_to_lab_class.items():
+
+        if len(class_assignments) < 2:
+            continue
+
+        for d in builder.days:
+            for s in builder.slots:
+
+                error_msg = f"Lab class conflict of {class_} on {builder.index_to_day[d]}"
+                slack = builder.create_slack(
+                    name="lab conflicts",
+                    error_msg=error_msg,
+                    weight=10000
+                )
+
+                builder.model.add(sum(builder.shifts[(assignment.id, d, s)] for assignment in class_assignments) <= 1 + slack)
+
+
+
+
+def apply_subject_hardness(builder: TimeTableGenerator) -> None:
+
     pass
