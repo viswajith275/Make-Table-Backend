@@ -265,7 +265,7 @@ def apply_subject_hardness(builder: TimeTableGenerator) -> None:
         for d in builder.days
         for assignment in builder.assignments
         )
-    
+
 
 
 def apply_hard_subject_distances(builder: TimeTableGenerator) -> None:
