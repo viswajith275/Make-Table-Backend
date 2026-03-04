@@ -1,6 +1,7 @@
-from sqlalchemy import ForeignKey, ARRAY, Enum, JSON
+from sqlalchemy import ForeignKey, ARRAY, Enum
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from typing import List, Dict, Any
+from typing import List, Dict, Optional
 # import uuid    use as a secondary level of primary for security
 from datetime import datetime
 from app.db.base_class import Base
@@ -17,7 +18,7 @@ class TimeTable(Base):
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow())
     
     status: Mapped[TimeTableStatus] = mapped_column(default=TimeTableStatus.active)
-    violations: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, server_default='[]')
+    violations: Mapped[Optional[List[Dict]]] = mapped_column(JSONB)
 
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
 

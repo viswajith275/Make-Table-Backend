@@ -1,11 +1,12 @@
 from ortools.sat.python import cp_model
-from typing import List
+from typing import List, Tuple
+from collections import defaultdict
 from dataclasses import dataclass
+from random import randint
 
 
-from app.schemas.generation import TeacherAssignmentData
-from app.schemas.timetable import TimeTableResponse
-# Also import timetable entry model
+from app.schemas.generation import TimeTableCreationData, ViolationCreate, TeacherAssignmentData
+from app.schemas.timetable_entry import TimeTableEntryCreate
 from app.models.enums import WeekDayEnum, Hardness
 from app.services.timetable_service.constraints import teacher, class_, teacher_assignment, subject
 
@@ -20,11 +21,12 @@ class SlackTracker():
 
 class TimeTableGenerator:
 
-    def __init__(self, assignments: List[TeacherAssignmentData], timetable: TimeTableResponse) -> None:
+    def __init__(self, timetable_data: TimeTableCreationData) -> None:
 
-        self.assignments = assignments
-        self.slots = range(1,timetable.slots+1)
-        self.days = set([self.day_to_index[d] for d in timetable.days])
+        self.assignments = timetable_data.assignments
+        self.id_to_assignment_map: dict[int, TeacherAssignmentData] = {a.id: a for a in self.assignments }
+        self.slots = range(1,timetable_data.slots+1)
+        self.days = set([self.day_to_index[d] for d in timetable_data.days])
 
         self.index_to_day: dict[int, WeekDayEnum] = {i:d for i,d in enumerate(WeekDayEnum)}
         self.day_to_index: dict[WeekDayEnum, int] = {d:i for i,d in enumerate(WeekDayEnum)}
@@ -39,9 +41,9 @@ class TimeTableGenerator:
             Hardness.med: 2,
             Hardness.high: 3
         }
-        self.distance_weight = 5
-        self.max_concern_distance = 3
-        self.weight = 50000
+        self.distance_weight: int = 5
+        self.max_concern_distance: int = 3
+        self.weight: int = 50000
         
         self.error_slacks: dict[str, SlackTracker] = {}
         self.silent_minimization: list = []
@@ -49,7 +51,7 @@ class TimeTableGenerator:
     
     def create_slack(self, name: str, weight: int, error_msg: str, upper_bound: int = 100) -> cp_model.IntVar:
         
-        slack_var = self.model.new_int_var(lb=0, ub=upper_bound, name=f"slack_{name}")
+        slack_var: cp_model.IntVar = self.model.new_int_var(lb=0, ub=upper_bound, name=f"slack_{name}")
 
         self.error_slacks[name] = SlackTracker(
             variable=slack_var,
@@ -59,7 +61,7 @@ class TimeTableGenerator:
 
         return slack_var
     
-    def create_all_variables(self):
+    def create_all_shifts(self):
 
         for assignment in self.assignments:
             for d in self.days:
@@ -143,3 +145,66 @@ class TimeTableGenerator:
         self.model.minimize(sum(all_shifts))
 
         return self
+    
+
+    def solve_and_generate(self) -> tuple[List[TimeTableEntryCreate], List[ViolationCreate]]:
+
+        solver = cp_model.CpSolver()
+        solver.parameters.max_time_in_seconds = 30
+        solver.parameters.num_search_workers = 8
+        solver.parameters.random_polarity_ratio = 0.99  # 99% chance to choose 0 or 1 randomly
+        solver.parameters.random_seed = randint(0, 10000)
+
+        status = solver.Solve(self.model)
+
+        timetable: List[TimeTableEntryCreate] = []
+        violations: List[ViolationCreate] = []
+
+        if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+
+            for name, slack in self.error_slacks.items():
+
+                slack_val = solver.value(slack.variable)
+
+                if slack_val > 0:
+                    violations.append(
+                        ViolationCreate(
+                            name=name,
+                            description=slack.error_msg,
+                            severity=slack.weight,
+                            violation_amount=slack_val
+                        )
+                    )
+
+            busy_rooms = defaultdict(set)
+
+            for (a_id, day, slot), var in self.shifts.items():
+
+                assignment = self.id_to_assignment_map[a_id]
+
+                if solver.value(var):
+                    if assignment.subject.lab_classes:
+
+                        availdable_classes = assignment.subject.lab_classes
+
+                        for class_ in availdable_classes:
+
+                            if class_ not in busy_rooms[(day, slot)]:
+                                lab_class_id = class_.id
+                                busy_rooms[(day, slot)].add(class_)
+                                break
+
+                    timetable.append(
+                        TimeTableEntryCreate(
+                            slot=slot,
+                            day=self.index_to_day[day],
+                            teacher_id=assignment.teacher.id,
+                            class_id=assignment.class_.id,
+                            subject_id=assignment.subject.id,
+                            lab_id=lab_class_id
+                        )
+                    )
+
+        # Handle timetable model down condition
+
+        return timetable, violations

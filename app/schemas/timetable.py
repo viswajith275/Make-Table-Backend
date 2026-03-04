@@ -1,6 +1,11 @@
 from pydantic import BaseModel, field_validator, ConfigDict
 from typing import Optional, List
+
+
 from app.models.enums import WeekDayEnum
+from app.schemas.class_ import ClassResponse
+from app.schemas.teacher import TeacherResponse
+from app.schemas.timetable_entry import ClassFinalEntryResponse, TeacherFinalEntryResponse
 
 class TimeTableResponse(BaseModel):
     id: int
@@ -46,3 +51,15 @@ class TimeTableUpdate(TimeTableCreate):
     name: Optional[str] = None
     slots: Optional[int] = None
     days: Optional[List[WeekDayEnum]] = None
+
+
+class ClassTimeTableResponse(TimeTableResponse):
+    
+    class_: ClassResponse
+    timetable: List[ClassFinalEntryResponse]
+
+
+class TeacherTimeTableResponse(TimeTableResponse):
+    
+    teacher: TeacherResponse
+    timetable: List[TeacherFinalEntryResponse]

@@ -20,4 +20,4 @@ class TeacherRole(str, Enum):
 
 class TimeTableStatus(str, Enum):
     active = "Active"
-    pending = "Pending"
+    processing = "Processing"

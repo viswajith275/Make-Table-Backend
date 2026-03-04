@@ -5,6 +5,7 @@ from typing import List, Optional, Dict, Any
 from app.schemas.teacher import UniqueTeacherResponse
 from app.schemas.class_ import ClassResponse
 from app.schemas.subject import UniqueSubjectResponse
+from app.schemas.timetable import TimeTableResponse
 from app.models.enums import WeekDayEnum, TeacherRole, TimeTableStatus
 
 
@@ -29,3 +30,16 @@ class TeacherAssignmentData(BaseModel):
     subject: UniqueSubjectResponse
 
     model_config = ConfigDict(from_attributes=True)
+
+class TimeTableCreationData(TimeTableResponse): # Can write specific validation
+
+    assignments: List[TeacherAssignmentData] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ViolationCreate(BaseModel):
+
+    name: str
+    description: str
+    severity: int
+    violation_amount: int

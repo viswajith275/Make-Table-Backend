@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator, ConfigDict, model_validator
+from pydantic import BaseModel, field_validator, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 from app.models.enums import TeacherRole, WeekDayEnum, Hardness
