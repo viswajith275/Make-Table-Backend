@@ -5,6 +5,7 @@ from app.api.v1.endpoints import class_
 from app.api.v1.endpoints import teacher
 from app.api.v1.endpoints import subject
 from app.api.v1.endpoints import teacher_assignment
+from app.api.v1 .endpoints import generation
 
 router = APIRouter()
 
@@ -14,3 +15,4 @@ router.include_router(class_.router, tags=["Class"])
 router.include_router(teacher.router, tags=["Teacher"])
 router.include_router(subject.router, tags=["Subject"])
 router.include_router(teacher_assignment.router, tags=["Assignment"])
+router.include_router(generation.router, tags=["TimeTable Generation"])

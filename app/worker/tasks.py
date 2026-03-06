@@ -1,5 +1,6 @@
 from sqlalchemy import select
 from typing import List
+from celery import Task
 
 
 from app.core.celery import celery_app
@@ -13,7 +14,7 @@ from app.models.timetable import TimeTable
 
 
 @celery_app.task(bind=True)
-def generate_timetable_task(self, timetable_id: int, user_id: int, force_generation: bool):
+def generate_timetable_task(self: Task, timetable_id: int, user_id: int) -> None: # Add force generation later ##################
 
     # Add force generation as optional for now just allow it
 
@@ -73,7 +74,12 @@ def generate_timetable_task(self, timetable_id: int, user_id: int, force_generat
             db.rollback()
 
             if timetable is not None:
+                stmt = select(TimeTable).where(TimeTable.id == timetable_id, TimeTable.user_id == user_id)
+                timetable = db.scalars(stmt).first()
+            
+            if timetable is not None:
                 timetable.status = TimeTableStatus.active
+
 
             db.commit()
 

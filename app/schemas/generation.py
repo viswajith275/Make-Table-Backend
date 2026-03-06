@@ -10,8 +10,8 @@ from app.models.enums import WeekDayEnum, TeacherRole, TimeTableStatus
 
 
 class GenerateResponse(BaseModel):
+    id: int
     status: TimeTableStatus
-    error: Optional[Dict[str, Any]] = None
 
     model_config = ConfigDict(from_attributes=True)
 

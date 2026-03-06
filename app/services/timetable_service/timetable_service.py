@@ -1,9 +1,17 @@
 from sqlalchemy import select, delete, update
 from sqlalchemy.orm import Session
 from typing import List, Dict
+
+
+
 from app.models.timetable import TimeTable
+from app.models.enums import TimeTableStatus
+from app.schemas.generation import GenerateResponse
 from app.schemas.timetable import TimeTableCreate, TimeTableUpdate
-from app.core.exceptions import NotFound, BadRequest
+from app.worker import tasks
+from app.core.exceptions import NotFound, BadRequest, Conflict
+
+
 
 def create_timetable(user_id: int, timetable_request: TimeTableCreate, db: Session) -> TimeTable:
 
@@ -63,3 +71,38 @@ def delete_timetable(timetable_id: int, user_id: int, db: Session) -> Dict[str, 
     return {
         'message': f'timetable with id {deleted_id} deleted successfully!'
     }
+
+
+
+def generate_timetable_task(timetable_id: int, user_id: int, db: Session) -> TimeTable:
+    
+    stmt = select(TimeTable).where(TimeTable.id == timetable_id, TimeTable.user_id == user_id)
+    timetable = db.scalars(stmt).first()
+
+    if timetable is None:
+        raise NotFound("TimeTable not found!")
+    
+    if timetable.status == TimeTableStatus.processing:
+        raise Conflict("The TimeTable is already being processed!")
+    
+    timetable.status = TimeTableStatus.processing
+
+    db.commit()
+
+    tasks.generate_timetable_task.delay(timetable_id=timetable_id, user_id=user_id)
+
+    return timetable
+
+
+
+def current_timetable_status(timetable_id: int, user_id: int, db: Session) -> TimeTable:
+    
+    stmt = select(TimeTable).where(TimeTable.id == timetable_id, TimeTable.user_id == user_id)
+    timetable = db.scalars(stmt).first()
+
+
+    if timetable is None:
+        raise NotFound("TimeTable not found!")
+    
+
+    return timetable
