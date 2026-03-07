@@ -1,23 +1,23 @@
 from enum import Enum
 
 class WeekDayEnum(str, Enum):
-    mon = "Mon"
-    tue = "Tue"
-    wed = "Wed"
-    thu = "Thu"
-    fri = "Fri"
-    sat = "Sat"
-    sun = "Sun"
+    Mon = "Mon"
+    Tue = "Tue"
+    Wed = "Wed"
+    Thu = "Thu"
+    Fri = "Fri"
+    Sat = "Sat"
+    Sun = "Sun"
 
 class Hardness(str, Enum):
-    low = "Low"
-    med = "Med"
-    high = "High"
+    Low = "Low"
+    Med = "Med"
+    High = "High"
 
 class TeacherRole(str, Enum):
-    class_teacher = "Class_Teacher"
-    subject_teacher = "Subject_Teacher"
+    Class_Teacher = "Class_Teacher"
+    Subject_Teacher = "Subject_Teacher"
 
 class TimeTableStatus(str, Enum):
-    active = "Active"
-    processing = "Processing"
+    Active = "Active"
+    Processing = "Processing"

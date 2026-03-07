@@ -82,10 +82,10 @@ def generate_timetable_task(timetable_id: int, user_id: int, db: Session) -> Tim
     if timetable is None:
         raise NotFound("TimeTable not found!")
     
-    if timetable.status == TimeTableStatus.processing:
+    if timetable.status == TimeTableStatus.Processing:
         raise Conflict("The TimeTable is already being processed!")
     
-    timetable.status = TimeTableStatus.processing
+    timetable.status = TimeTableStatus.Processing
 
     db.commit()
 

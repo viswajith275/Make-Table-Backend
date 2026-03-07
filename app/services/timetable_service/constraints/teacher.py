@@ -1,9 +1,8 @@
 from collections import defaultdict
 
 
-from app.services.timetable_service.generator import TimeTableGenerator
 
-def apply_one_class_per_slot(builder: TimeTableGenerator) -> None:
+def apply_one_class_per_slot(builder: 'TimeTableGenerator') -> None:
 
     assigned_to_teacher = defaultdict(list)
 
@@ -27,7 +26,7 @@ def apply_one_class_per_slot(builder: TimeTableGenerator) -> None:
                     builder.model.add(sum(builder.shifts[(assignment.id, d, s)] for assignment in teacher_assignments) + slack == 1)
 
 
-def apply_teacher_weekly_limit(builder: TimeTableGenerator) -> None:
+def apply_teacher_weekly_limit(builder: 'TimeTableGenerator') -> None:
 
         for assignment in builder.assignments:
 
@@ -47,7 +46,7 @@ def apply_teacher_weekly_limit(builder: TimeTableGenerator) -> None:
                 builder.model.add(sum(builder.shifts[(assignment.id, d, s)] for s in builder.slots for d in builder.days) <= max_classes_per_week + slack)
 
 
-def apply_teacher_daily_limit(builder: TimeTableGenerator) -> None:
+def apply_teacher_daily_limit(builder: 'TimeTableGenerator') -> None:
      
      for assignment in builder.assignments:
           
@@ -69,7 +68,7 @@ def apply_teacher_daily_limit(builder: TimeTableGenerator) -> None:
                 builder.model.add(sum(builder.shifts[(assignment.id, d, s)] for s in builder.slots) <= max_class_per_day + slack)
 
 
-def apply_teacher_consecutive_limit(builder: TimeTableGenerator) -> None:
+def apply_teacher_consecutive_limit(builder: 'TimeTableGenerator') -> None:
 
     assigned_to_teacher = defaultdict(list)
 
@@ -77,13 +76,13 @@ def apply_teacher_consecutive_limit(builder: TimeTableGenerator) -> None:
 
         if getattr(assignment.teacher, 'max_classes_consecutive', None) is not None:
 
-            assigned_to_teacher[assignment.teacher].append(assignment)
+            assigned_to_teacher[(assignment.teacher.name, assignment.teacher.max_classes_consecutive)].append(assignment)
 
     # Teacher should not take more consecutive classes than specified
 
     for teacher, teacher_assignments in assigned_to_teacher.items():
 
-        max_consecutive_classes_per_day = teacher.max_classes_consecutive
+        max_consecutive_classes_per_day = teacher[1]
 
         for d in builder.days:
 
@@ -97,7 +96,7 @@ def apply_teacher_consecutive_limit(builder: TimeTableGenerator) -> None:
 
             for i in range(len(combined_slots_of_teacher) - max_consecutive_classes_per_day):
 
-                error_msg = f"Max consecutive classes exceed {teacher.name} (limit: {max_consecutive_classes_per_day})"
+                error_msg = f"Max consecutive classes exceed {teacher[0]} (limit: {max_consecutive_classes_per_day})"
                 slack = builder.create_slack(
                     name='teacher consecutive limit',
                     error_msg=error_msg,

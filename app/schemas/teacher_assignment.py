@@ -31,7 +31,7 @@ class TeacherAssignmentCreate(BaseModel):
     teacher_id: int
     class_id: int
     subject_id: int
-    role: TeacherRole = TeacherRole.subject_teacher
+    role: TeacherRole = TeacherRole.Subject_Teacher
     morning_class_days: Optional[List[WeekDayEnum]] = None
 
     @field_validator('morning_class_days')

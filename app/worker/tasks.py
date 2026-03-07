@@ -4,17 +4,17 @@ from celery import Task
 
 
 from app.core.celery import celery_app
-from app.schemas.generation import TimeTableCreationData, ViolationCreate, GenerateRequest
+from app.core.exceptions import BadRequest
+from app.schemas.generation import TimeTableCreationData
 from app.services.timetable_service.generator import TimeTableGenerator
 from app.models.enums import TimeTableStatus
 from app.db.session import SessionLocal
 from app.models.timetable_entry import TimeTableEntry
-from app.schemas.timetable_entry import TimeTableEntryCreate
 from app.models.timetable import TimeTable
 
 
 @celery_app.task(bind=True)
-def generate_timetable_task(self: Task, timetable_id: int, user_id: int) -> None: # Add force generation later ##################
+def generate_timetable_task(self: Task, timetable_id: int, user_id: int, force_generation: bool) -> None: # Add force generation later ##################
 
     # Add force generation as optional for now just allow it
 
@@ -44,6 +44,14 @@ def generate_timetable_task(self: Task, timetable_id: int, user_id: int) -> None
                 .solve_and_generate()
             )
 
+            violations_data = [violation.model_dump() for violation in violations]
+
+            if violations and not force_generation:
+                raise BadRequest(f"Conflics during creation: {violations_data}")
+
+            for prev_entry in timetable.entries:
+                db.delete(prev_entry)
+
             all_entries: List[TimeTableEntry] = []
 
             for entry in timetable_entries:
@@ -63,9 +71,9 @@ def generate_timetable_task(self: Task, timetable_id: int, user_id: int) -> None
 
             db.add_all(all_entries)
 
-            timetable.violations = [violation.model_dump() for violation in violations]
+            timetable.violations = violations_data
 
-            timetable.status = TimeTableStatus.active
+            timetable.status = TimeTableStatus.Active
 
             db.commit()
 
@@ -78,7 +86,7 @@ def generate_timetable_task(self: Task, timetable_id: int, user_id: int) -> None
                 timetable = db.scalars(stmt).first()
             
             if timetable is not None:
-                timetable.status = TimeTableStatus.active
+                timetable.status = TimeTableStatus.Active
 
 
             db.commit()

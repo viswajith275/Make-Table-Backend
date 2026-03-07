@@ -1,10 +1,6 @@
-from collections import defaultdict
-
-from app.services.timetable_service.generator import TimeTableGenerator
 
 
-
-def apply_assignment_morning_class_days(builder: TimeTableGenerator) -> None:
+def apply_assignment_morning_class_days(builder: 'TimeTableGenerator') -> None:
 
     for assignment in builder.assignments:
 

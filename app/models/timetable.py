@@ -14,10 +14,10 @@ class TimeTable(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column()
     slots: Mapped[int] = mapped_column()    # Add type of timetable for diffrent timetables
-    days: Mapped[List[WeekDayEnum]] = mapped_column(ARRAY(Enum(WeekDayEnum, name="weekday")))
+    days: Mapped[List[WeekDayEnum]] = mapped_column(ARRAY(Enum(WeekDayEnum)))
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow())
     
-    status: Mapped[TimeTableStatus] = mapped_column(default=TimeTableStatus.active)
+    status: Mapped[TimeTableStatus] = mapped_column(Enum(TimeTableStatus), default=TimeTableStatus.Active)
     violations: Mapped[Optional[List[Dict]]] = mapped_column(JSONB)
 
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))

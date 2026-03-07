@@ -45,10 +45,10 @@ def create_assignment(user_id: int, assignment_request: TeacherAssignmentCreate,
     if subject is None:
         raise NotFound("Subject not found!")
     
-    if assignment_request.role == TeacherRole.class_teacher:
+    if assignment_request.role == TeacherRole.Class_Teacher:
 
         stmt = select(TeacherAssignment).where(TeacherAssignment.teacher_id == teacher.id,
-                                               TeacherAssignment.role == TeacherRole.class_teacher)
+                                               TeacherAssignment.role == TeacherRole.Class_Teacher)
         already_class_teacher = db.scalars(stmt).first()
 
         if already_class_teacher:
@@ -99,10 +99,10 @@ def update_assignment(assignment_id: int, user_id: int, assignment_patch: Teache
     if assignment_obj is None:
         raise NotFound("Assignment not found!")
     
-    if role == TeacherRole.class_teacher:
+    if role == TeacherRole.Class_Teacher:
 
         stmt = select(TeacherAssignment).where(TeacherAssignment.teacher_id == assignment_obj.teacher_id,
-                                               TeacherAssignment.role == TeacherRole.class_teacher)
+                                               TeacherAssignment.role == TeacherRole.Class_Teacher)
         already_class_teacher = db.scalars(stmt).first()
 
         if already_class_teacher:

@@ -1,10 +1,8 @@
 from collections import defaultdict
 
 
-from app.services.timetable_service.generator import TimeTableGenerator
 
-
-def apply_one_teacher_per_slot(builder: TimeTableGenerator) -> None:
+def apply_one_teacher_per_slot(builder: 'TimeTableGenerator') -> None:
         assigned_to_class = defaultdict(list)
         for a in builder.assignments:
             assigned_to_class[a.class_.class_name].append(a)

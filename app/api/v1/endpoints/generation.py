@@ -12,7 +12,7 @@ router = APIRouter()
 
 
 
-@router.post('timetable/{timetable_id}/generate', response_model=generation.GenerateResponse)
+@router.post('/timetable/{timetable_id}/generate', response_model=generation.GenerateResponse)
 def create_generation_task(timetable_id: int,
                            request: Request,
                            current_user: User = Depends(deps.get_current_active_user),
@@ -25,7 +25,7 @@ def create_generation_task(timetable_id: int,
 
 
 
-@router.get('timetable/{timetable_id}/status', response_model=generation.GenerateResponse)
+@router.get('/timetable/{timetable_id}/status', response_model=generation.GenerateResponse)
 def check_timetable_status(timetable_id: int,
                            current_user: User = Depends(deps.get_current_active_user),
                            db: Session = Depends(deps.get_db)

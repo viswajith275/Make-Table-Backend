@@ -26,10 +26,12 @@ class TimeTableGenerator:
         self.assignments = timetable_data.assignments
         self.id_to_assignment_map: dict[int, TeacherAssignmentData] = {a.id: a for a in self.assignments }
         self.slots = range(1,timetable_data.slots+1)
-        self.days = set([self.day_to_index[d] for d in timetable_data.days])
 
         self.index_to_day: dict[int, WeekDayEnum] = {i:d for i,d in enumerate(WeekDayEnum)}
         self.day_to_index: dict[WeekDayEnum, int] = {d:i for i,d in enumerate(WeekDayEnum)}
+
+        self.days = set([self.day_to_index[d] for d in timetable_data.days])
+
 
         self.model = cp_model.CpModel()
         self.shifts = {}
@@ -37,9 +39,9 @@ class TimeTableGenerator:
         # Change values accordingly for better performaces (Dont forget)
 
         self.hardness_map: dict[Hardness, int] = {
-            Hardness.low: 1,
-            Hardness.med: 2,
-            Hardness.high: 3
+            Hardness.Low: 1,
+            Hardness.Med: 2,
+            Hardness.High: 3
         }
         self.distance_weight: int = 5
         self.max_concern_distance: int = 3
@@ -183,15 +185,18 @@ class TimeTableGenerator:
                 assignment = self.id_to_assignment_map[a_id]
 
                 if solver.value(var):
+
+                    lab_class_id = None
+
                     if assignment.subject.lab_classes:
 
                         availdable_classes = assignment.subject.lab_classes
 
                         for class_ in availdable_classes:
 
-                            if class_ not in busy_rooms[(day, slot)]:
+                            if class_.id not in busy_rooms[(day, slot)]:
                                 lab_class_id = class_.id
-                                busy_rooms[(day, slot)].add(class_)
+                                busy_rooms[(day, slot)].add(class_.id)
                                 break
 
                     timetable.append(

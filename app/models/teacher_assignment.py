@@ -18,7 +18,7 @@ class TeacherAssignment(Base):
     class_id: Mapped[int] = mapped_column(ForeignKey("classes.id"))
     subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.id"))
 
-    role: Mapped[TeacherRole] = mapped_column(Enum(TeacherRole), default=TeacherRole.subject_teacher)
+    role: Mapped[TeacherRole] = mapped_column(Enum(TeacherRole), default=TeacherRole.Subject_Teacher)
     morning_class_days: Mapped[Optional[List[WeekDayEnum]]] = mapped_column(ARRAY(Enum(WeekDayEnum)))
 
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))

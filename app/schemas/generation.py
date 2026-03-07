@@ -23,7 +23,7 @@ class GenerateRequest(BaseModel):
 class TeacherAssignmentData(BaseModel):
     id: int
     role: TeacherRole
-    morning_class_days: List[WeekDayEnum]
+    morning_class_days: Optional[List[WeekDayEnum]] = None
 
     teacher: UniqueTeacherResponse
     class_: ClassResponse

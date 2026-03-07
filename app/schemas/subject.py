@@ -34,7 +34,7 @@ class SubjectCreate(BaseModel):
     max_classes_consecutive: Optional[int] = None
     isLab: bool = False
     lab_classes: Optional[List[int]] = None
-    hardness: Hardness = Hardness.low
+    hardness: Hardness = Hardness.Low
 
     @field_validator('name')
     @classmethod

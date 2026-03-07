@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 # import uuid    use as a secondary level of primary for security
 from datetime import datetime
@@ -11,7 +11,7 @@ class TimeTableEntry(Base):
     __tablename__ = 'timetable_entries'  # type: ignore
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    day: Mapped[WeekDayEnum] = mapped_column()
+    day: Mapped[WeekDayEnum] = mapped_column(Enum(WeekDayEnum))
     slot: Mapped[int] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow())
 

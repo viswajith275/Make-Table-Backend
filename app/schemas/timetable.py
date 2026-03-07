@@ -1,8 +1,8 @@
 from pydantic import BaseModel, field_validator, ConfigDict
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 
-from app.models.enums import WeekDayEnum
+from app.models.enums import WeekDayEnum, TimeTableStatus
 from app.schemas.class_ import ClassResponse
 from app.schemas.teacher import TeacherResponse
 from app.schemas.timetable_entry import ClassFinalEntryResponse, TeacherFinalEntryResponse
@@ -12,6 +12,8 @@ class TimeTableResponse(BaseModel):
     name: str
     slots: int
     days: List[WeekDayEnum]
+    status: TimeTableStatus
+    Violations: Optional[List[Dict]] = None
     
     model_config = ConfigDict(from_attributes=True)
 

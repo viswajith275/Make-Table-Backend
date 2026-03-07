@@ -1,10 +1,8 @@
 from collections import defaultdict
 
 
-from app.services.timetable_service.generator import TimeTableGenerator
 
-
-def apply_subject_minimum_daily_limit(builder: TimeTableGenerator) -> None:
+def apply_subject_minimum_daily_limit(builder: 'TimeTableGenerator') -> None:
 
     for assignment in builder.assignments:
 
@@ -27,7 +25,7 @@ def apply_subject_minimum_daily_limit(builder: TimeTableGenerator) -> None:
 
 
 
-def apply_subject_maximum_daily_limit(builder: TimeTableGenerator) -> None:
+def apply_subject_maximum_daily_limit(builder: 'TimeTableGenerator') -> None:
 
     for assignment in builder.assignments:
 
@@ -50,7 +48,7 @@ def apply_subject_maximum_daily_limit(builder: TimeTableGenerator) -> None:
 
 
 
-def apply_subject_minimum_weekly_limit(builder: TimeTableGenerator) -> None:
+def apply_subject_minimum_weekly_limit(builder: 'TimeTableGenerator') -> None:
 
     for assignment in builder.assignments:
 
@@ -71,7 +69,7 @@ def apply_subject_minimum_weekly_limit(builder: TimeTableGenerator) -> None:
 
 
 
-def apply_subject_maximum_weekly_limit(builder: TimeTableGenerator) -> None:
+def apply_subject_maximum_weekly_limit(builder: 'TimeTableGenerator') -> None:
 
     for assignment in builder.assignments:
 
@@ -92,7 +90,7 @@ def apply_subject_maximum_weekly_limit(builder: TimeTableGenerator) -> None:
 
 
 
-def apply_subject_minimum_consecutive_limit(builder: TimeTableGenerator) -> None:
+def apply_subject_minimum_consecutive_limit(builder: 'TimeTableGenerator') -> None:
 
     for assignment in builder.assignments:
 
@@ -189,7 +187,7 @@ def apply_subject_minimum_consecutive_limit(builder: TimeTableGenerator) -> None
 
 
 
-def apply_subject_maximum_consecutive_limit(builder: TimeTableGenerator) -> None:
+def apply_subject_maximum_consecutive_limit(builder: 'TimeTableGenerator') -> None:
 
     for assignment in builder.assignments:
 
@@ -218,7 +216,7 @@ def apply_subject_maximum_consecutive_limit(builder: TimeTableGenerator) -> None
 
 # Actually a class constraint (Dont know if there is a better way to write this)
 
-def apply_subject_per_lab(builder: TimeTableGenerator) -> None:
+def apply_subject_per_lab(builder: 'TimeTableGenerator') -> None:
 
     assigned_to_lab_class = defaultdict(list)
 
@@ -253,7 +251,7 @@ def apply_subject_per_lab(builder: TimeTableGenerator) -> None:
 
 
 
-def apply_subject_hardness(builder: TimeTableGenerator) -> None:
+def apply_subject_hardness(builder: 'TimeTableGenerator') -> None:
 
     # Applying that hard subjects appear earlier than easy subjects
 
@@ -268,7 +266,7 @@ def apply_subject_hardness(builder: TimeTableGenerator) -> None:
 
 
 
-def apply_hard_subject_distances(builder: TimeTableGenerator) -> None:
+def apply_hard_subject_distances(builder: 'TimeTableGenerator') -> None:
 
     # Maximizing the distance between 2 hard subjects so that all hard subject dont clutter around morning times
 
