@@ -4,7 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import Optional
 from app.db.base_class import Base
-from app.models.enums import WeekDayEnum
+from app.models.enums import WeekDayEnum, TeacherRole
 
 class TimeTableEntry(Base):
 
@@ -21,6 +21,7 @@ class TimeTableEntry(Base):
     class_id: Mapped[int] = mapped_column(ForeignKey("classes.id"))
     subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.id"))
     lab_id: Mapped[Optional[int]] = mapped_column(ForeignKey('classes.id'))
+    role: Mapped[TeacherRole] = mapped_column()
 
 
     #relationships

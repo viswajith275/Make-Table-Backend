@@ -1,6 +1,7 @@
 from pydantic import BaseModel, field_validator, ConfigDict
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
+
 
 class ClassResponse(BaseModel):
     id: int

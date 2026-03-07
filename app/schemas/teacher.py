@@ -2,6 +2,7 @@ from pydantic import BaseModel, field_validator, ConfigDict, model_validator
 from typing import Optional, List, Self
 from datetime import datetime
 
+
 class TeacherResponse(BaseModel):
     id: int
     name: str

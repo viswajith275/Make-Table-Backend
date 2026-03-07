@@ -206,7 +206,8 @@ class TimeTableGenerator:
                             teacher_id=assignment.teacher.id,
                             class_id=assignment.class_.id,
                             subject_id=assignment.subject.id,
-                            lab_id=lab_class_id
+                            lab_id=lab_class_id,
+                            role=assignment.role
                         )
                     )
 

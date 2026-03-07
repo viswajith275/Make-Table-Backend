@@ -64,7 +64,8 @@ def generate_timetable_task(self: Task, timetable_id: int, user_id: int, force_g
                     teacher_id=entry.teacher_id,
                     class_id=entry.class_id,
                     subject_id=entry.subject_id,
-                    lab_id=entry.lab_id
+                    lab_id=entry.lab_id,
+                    role=entry.role
                 )
 
                 all_entries.append(new_entry)

@@ -1,10 +1,14 @@
 from sqlalchemy import select, delete, update
 from sqlalchemy.orm import Session
 from typing import List, Dict
+
+
+
 from app.models.teacher import Teacher
 from app.models.timetable import TimeTable
 from app.schemas.teacher import TeacherCreate, TeacherUpdate
 from app.core.exceptions import NotFound, BadRequest, Conflict
+from app.models.enums import TimeTableStatus
 
 def create_teacher(timetable_id: int, user_id: int, teacher_request: TeacherCreate, db: Session) -> Teacher:
 
@@ -13,6 +17,9 @@ def create_teacher(timetable_id: int, user_id: int, teacher_request: TeacherCrea
 
     if timetable is None:
         raise NotFound("TimeTable not found!")
+    
+    if timetable.status == TimeTableStatus.Processing:
+        raise Conflict("The timetable is being processed! wait till completion")
     
     stmt = select(Teacher).where(Teacher.name == teacher_request.name, Teacher.timetable_id == timetable.id)
     existing = db.scalars(stmt).first()
@@ -75,13 +82,21 @@ def update_teacher(timetable_id: int, user_id: int, teacher_id: int, teacher_pat
         existing = db.scalars(stmt).first()
 
         if existing:
-            raise Conflict("This class already exists!")
-        
+            raise Conflict("This teacher already exists!")
+    
+
+    stmt = select(TimeTable).where(TimeTable.id == timetable_id, TimeTable.user_id == user_id)
+    timetable = db.scalars(stmt).first()
+    
+    if timetable is not None and timetable.status == TimeTableStatus.Processing:
+        raise Conflict("The timetable is being processed! wait till completion")
+
+
     stmt = update(Teacher).where(Teacher.id == teacher_id, Teacher.user_id == user_id).values(**patch_data).returning(Teacher)
     teacher_obj = db.execute(stmt).scalar_one_or_none()
 
     if not teacher_obj:
-        raise NotFound("Class not found!")
+        raise NotFound("Teacher not found!")
     
     db.commit()
 
@@ -91,14 +106,19 @@ def update_teacher(timetable_id: int, user_id: int, teacher_id: int, teacher_pat
 
 def delete_teacher(teacher_id: int, user_id: int, db: Session) -> Dict[str, str]:
 
-    stmt = delete(Teacher).where(Teacher.id == teacher_id, Teacher.user_id == user_id).returning(Teacher.id)
-    deleted_id = db.execute(stmt).scalar_one_or_none()
+    stmt = select(Teacher).where(Teacher.id == teacher_id, Teacher.user_id == user_id)
+    teacher = db.scalars(stmt).one_or_none()
 
-    if deleted_id is None:
-        raise NotFound("Class not found!")
+    if teacher is None:
+        raise NotFound("Teacher not found!")
+    
+    if teacher.timetable.status == TimeTableStatus.Processing:
+        raise Conflict("The timetable is being processed! wait till completion")
+    
+    db.delete(teacher)
     
     db.commit()
 
     return {
-        'message': f'Teacher with id {deleted_id} deleted successfully'
+        'message': f'Teacher with id {teacher_id} deleted successfully'
     }

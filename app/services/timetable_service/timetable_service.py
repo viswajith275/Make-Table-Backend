@@ -6,7 +6,6 @@ from typing import List, Dict
 
 from app.models.timetable import TimeTable
 from app.models.enums import TimeTableStatus
-from app.schemas.generation import GenerateResponse
 from app.schemas.timetable import TimeTableCreate, TimeTableUpdate
 from app.worker import tasks
 from app.core.exceptions import NotFound, BadRequest, Conflict

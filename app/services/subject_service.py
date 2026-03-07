@@ -1,11 +1,16 @@
 from sqlalchemy import select, delete, update
 from sqlalchemy.orm import Session
 from typing import List, Dict
+
+
+
 from app.models.subject import Subject
 from app.models.class_ import Class
 from app.models.timetable import TimeTable
+from app.models.enums import TimeTableStatus
 from app.schemas.subject import SubjectCreate, SubjectUpdate
 from app.core.exceptions import NotFound, BadRequest, Conflict
+
 
 def create_subject(timetable_id: int, user_id: int, subject_request: SubjectCreate, db: Session) -> Subject:
     
@@ -14,6 +19,9 @@ def create_subject(timetable_id: int, user_id: int, subject_request: SubjectCrea
 
     if timetable is None:
         raise NotFound(message="TimeTable not found!")
+    
+    if timetable.status == TimeTableStatus.Processing:
+        raise Conflict("The timetable is being processed! wait till completion")
     
     stmt = select(Subject).where(Subject.name == subject_request.name, Subject.timetable_id == timetable.id)
     existing = db.scalars(stmt).first()
@@ -102,6 +110,15 @@ def update_subject(timetable_id: int, user_id: int, subject_id: int, subject_pat
         if existing:
             raise Conflict("This Subject already exists!")
     
+
+    stmt = select(TimeTable).where(TimeTable.id == timetable_id, TimeTable.user_id == user_id)
+    timetable = db.scalars(stmt).first()
+
+    
+    if timetable is not None and timetable.status == TimeTableStatus.Processing:
+        raise Conflict("The timetable is being processed! wait till completion")
+        
+    
     lab_classes = patch_data.pop('lab_classes', None)
 
     if patch_data:
@@ -146,14 +163,19 @@ def update_subject(timetable_id: int, user_id: int, subject_id: int, subject_pat
 
 def delete_subject(user_id: int, subject_id: int, db: Session) -> Dict[str, str]:
 
-    stms = delete(Subject).where(Subject.id == subject_id, Subject.user_id == user_id).returning(Subject.id)
-    deleted_id = db.execute(stms).scalar_one_or_none()
+    stmt = select(Subject).where(Subject.id == subject_id, Subject.user_id == user_id)
+    subject = db.scalars(stmt).one_or_none()
 
-    if deleted_id is None:
+    if subject is None:
         raise NotFound("Subject not found!")
+    
+    if subject.timetable.status == TimeTableStatus.Processing:
+        raise Conflict("The timetable is being processed! wait till completion")
+    
+    db.delete(subject)
     
     db.commit()
 
     return {
-        'message': f'Subject with id {deleted_id} deleted successfully!'
+        'message': f'Subject with id {subject_id} deleted successfully!'
     }

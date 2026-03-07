@@ -5,6 +5,7 @@ from app.models.teacher_assignment import TeacherAssignment
 from app.models.teacher import Teacher
 from app.models.class_ import Class
 from app.models.subject import Subject
+from app.models.enums import TimeTableStatus
 from app.schemas.teacher_assignment import TeacherAssignmentCreate, TeacherAssignmentUpdate
 from app.core.exceptions import NotFound, BadRequest, Conflict
 from app.models.enums import TeacherRole
@@ -20,6 +21,7 @@ def create_assignment(user_id: int, assignment_request: TeacherAssignmentCreate,
 
     if existing:
         raise Conflict("Assignment already exists!")
+    
 
     stmt = select(Teacher).where(Teacher.id == assignment_request.teacher_id,
                                  Teacher.user_id == user_id)
@@ -27,6 +29,9 @@ def create_assignment(user_id: int, assignment_request: TeacherAssignmentCreate,
 
     if teacher is None:
         raise NotFound("Tacher not found!")
+    
+    if teacher.timetable.status == TimeTableStatus.Processing:
+        raise Conflict("The timetable is being processed! wait till completion")
 
     stmt = select(Class).where(Class.id == assignment_request.class_id,
                                Class.user_id == user_id,
@@ -99,6 +104,11 @@ def update_assignment(assignment_id: int, user_id: int, assignment_patch: Teache
     if assignment_obj is None:
         raise NotFound("Assignment not found!")
     
+    
+    if assignment_obj.timetable.status == TimeTableStatus.Processing:
+        raise Conflict("The timetable is being processed! wait till completion")
+    
+    
     if role == TeacherRole.Class_Teacher:
 
         stmt = select(TeacherAssignment).where(TeacherAssignment.teacher_id == assignment_obj.teacher_id,
@@ -116,14 +126,19 @@ def update_assignment(assignment_id: int, user_id: int, assignment_patch: Teache
 
 def delete_assignment(assignment_id: int, user_id: int, db: Session) -> Dict[str, str]:
 
-    stmt = delete(TeacherAssignment).where(TeacherAssignment.id == assignment_id, TeacherAssignment.user_id == user_id).returning(TeacherAssignment.id)
-    deleted_id = db.execute(stmt).scalar_one_or_none()
+    stmt = select(TeacherAssignment).where(TeacherAssignment.id == assignment_id, TeacherAssignment.user_id == user_id)
+    assignment = db.scalars(stmt).one_or_none()
 
-    if deleted_id is None:
-        raise NotFound("Assignmnt not found!")
+    if assignment is None:
+        raise NotFound("Subject not found!")
+    
+    if assignment.timetable.status == TimeTableStatus.Processing:
+        raise Conflict("The timetable is being processed! wait till completion")
+    
+    db.delete(assignment)
     
     db.commit()
     
     return {
-        'message': f'Assignment with id {deleted_id} deleted successfully!'
+        'message': f'Assignment with id {assignment_id} deleted successfully!'
     }

@@ -1,11 +1,15 @@
 from sqlalchemy import select, delete, update
 from sqlalchemy.orm import Session
 from typing import List, Dict
+
+
 from app.models.class_ import Class
 from app.models.timetable import TimeTable
 from app.schemas.class_ import ClassCreate, ClassUpdate
-from app.core.exceptions import NotFound, BadRequest, Conflict
 from app.models.enums import TimeTableStatus
+from app.core.exceptions import NotFound, BadRequest, Conflict
+
+
 
 def create_class(timetable_id: int, user_id: int, class_request: ClassCreate, db: Session) -> Class:
 
@@ -14,6 +18,9 @@ def create_class(timetable_id: int, user_id: int, class_request: ClassCreate, db
 
     if timetable is None:
         raise NotFound(message="TimeTable not found!")
+    
+    if timetable.status == TimeTableStatus.Processing:
+        raise Conflict("The timetable is being processed! wait till completion")
 
     # if needed add a constraint to check existing class
     stmt = select(Class).where(Class.class_name == class_request.class_name, Class.timetable_id == timetable.id)
@@ -65,6 +72,15 @@ def update_class(timetable_id: int, class_id: int, user_id: int, class_patch: Cl
         if existing:
             raise Conflict("This class already exists!")
         
+    
+    stmt = select(TimeTable).where(TimeTable.id == timetable_id, TimeTable.user_id == user_id)
+    timetable = db.scalars(stmt).first()
+
+    
+    if timetable is not None and timetable.status == TimeTableStatus.Processing:
+        raise Conflict("The timetable is being processed! wait till completion")
+        
+    
     stmt = update(Class).where(Class.id == class_id, Class.user_id == user_id).values(**patch_data).returning(Class)
     class_obj = db.execute(stmt).scalar_one_or_none()
 
@@ -78,14 +94,19 @@ def update_class(timetable_id: int, class_id: int, user_id: int, class_patch: Cl
 
 def delete_class(class_id: int, user_id: int, db: Session) -> Dict[str, str]:
 
-    stmt = delete(Class).where(Class.id == class_id, Class.user_id == user_id).returning(Class.id)
-    deleted_id = db.execute(stmt).scalar_one_or_none()
+    stmt = select(Class).where(Class.id == class_id, Class.user_id == user_id)
+    class_ = db.scalars(stmt).one_or_none()
 
-    if deleted_id is None:
+    if class_ is None:
         raise NotFound("Class not found!")
+    
+    if class_.timetable.status == TimeTableStatus.Processing:
+        raise Conflict("The timetable is being processed! wait till completion")
+    
+    db.delete(class_)
     
     db.commit()
 
     return {
-        'message': f'Class with id {deleted_id} deleted successfully'
+        'message': f'Class with id {class_id} deleted successfully'
     }

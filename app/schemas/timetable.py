@@ -3,9 +3,6 @@ from typing import Optional, List, Dict
 
 
 from app.models.enums import WeekDayEnum, TimeTableStatus
-from app.schemas.class_ import ClassResponse
-from app.schemas.teacher import TeacherResponse
-from app.schemas.timetable_entry import ClassFinalEntryResponse, TeacherFinalEntryResponse
 
 class TimeTableResponse(BaseModel):
     id: int
@@ -13,7 +10,7 @@ class TimeTableResponse(BaseModel):
     slots: int
     days: List[WeekDayEnum]
     status: TimeTableStatus
-    Violations: Optional[List[Dict]] = None
+    violations: Optional[List[Dict]] = None
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -53,15 +50,3 @@ class TimeTableUpdate(TimeTableCreate):
     name: Optional[str] = None
     slots: Optional[int] = None
     days: Optional[List[WeekDayEnum]] = None
-
-
-class ClassTimeTableResponse(TimeTableResponse):
-    
-    class_: ClassResponse
-    timetable: List[ClassFinalEntryResponse]
-
-
-class TeacherTimeTableResponse(TimeTableResponse):
-    
-    teacher: TeacherResponse
-    timetable: List[TeacherFinalEntryResponse]
