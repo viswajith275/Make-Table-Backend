@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -15,13 +15,16 @@ router = APIRouter()
 @router.post('/timetable/{timetable_id}/generate', response_model=generation.GenerateResponse)
 def create_generation_task(timetable_id: int,
                            request: Request,
+                           force_generation: bool = Query(default=False, description="Force generation by ignoring the constraints!"),
                            current_user: User = Depends(deps.get_current_active_user),
                            db: Session = Depends(deps.get_db)
                            ):
     
     return timetable_service.generate_timetable_task(timetable_id=timetable_id,
                                                      user_id=current_user.id,
-                                                     db=db)
+                                                     db=db,
+                                                     force_generation=force_generation
+                                                     )
 
 
 

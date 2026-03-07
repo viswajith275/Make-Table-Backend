@@ -74,7 +74,7 @@ def delete_timetable(timetable_id: int, user_id: int, db: Session) -> Dict[str, 
 
 
 
-def generate_timetable_task(timetable_id: int, user_id: int, db: Session) -> TimeTable:
+def generate_timetable_task(timetable_id: int, user_id: int, db: Session, force_generation: bool = False) -> TimeTable:
     
     stmt = select(TimeTable).where(TimeTable.id == timetable_id, TimeTable.user_id == user_id)
     timetable = db.scalars(stmt).first()
@@ -89,7 +89,7 @@ def generate_timetable_task(timetable_id: int, user_id: int, db: Session) -> Tim
 
     db.commit()
 
-    tasks.generate_timetable_task.delay(timetable_id=timetable_id, user_id=user_id)
+    tasks.generate_timetable_task.delay(timetable_id=timetable_id, user_id=user_id, force_generation=force_generation)
 
     return timetable
 
