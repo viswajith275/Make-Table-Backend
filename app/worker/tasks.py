@@ -1,40 +1,41 @@
-from sqlalchemy import select
 from typing import List
-from celery import Task
 
+from celery import Task
+from sqlalchemy import select
 
 from app.core.celery import celery_app
 from app.core.exceptions import BadRequest
+from app.db.session import SessionLocal
+from app.models.enums import TimeTableStatus
+from app.models.timetable import TimeTable
+from app.models.timetable_entry import TimeTableEntry
 from app.schemas.generation import TimeTableCreationData
 from app.services.timetable_service.generator import TimeTableGenerator
-from app.models.enums import TimeTableStatus
-from app.db.session import SessionLocal
-from app.models.timetable_entry import TimeTableEntry
-from app.models.timetable import TimeTable
 
 
 @celery_app.task(bind=True)
-def generate_timetable_task(self: Task, timetable_id: int, user_id: int, force_generation: bool) -> None: # Add force generation later ##################
+def generate_timetable_task(
+    self: Task, timetable_id: int, user_id: int, force_generation: bool
+) -> None:  # Add force generation later ##################
 
     # Add force generation as optional for now just allow it
 
     with SessionLocal() as db:
-        
         try:
-
-            stmt = select(TimeTable).where(TimeTable.id == timetable_id, TimeTable.user_id == user_id)
+            stmt = select(TimeTable).where(
+                TimeTable.id == timetable_id, TimeTable.user_id == user_id
+            )
             timetable = db.scalars(stmt).first()
 
             if timetable is None:
                 return
-            
+
             timetable_data = TimeTableCreationData.model_validate(timetable)
 
             builder = TimeTableGenerator(timetable_data=timetable_data)
 
             timetable_entries, violations = (
-                builder
-                .create_all_shifts()
+                builder.create_all_shifts()
                 .add_class_constraints()
                 .add_teacher_constaints()
                 .add_subject_constraints()
@@ -55,7 +56,6 @@ def generate_timetable_task(self: Task, timetable_id: int, user_id: int, force_g
             all_entries: List[TimeTableEntry] = []
 
             for entry in timetable_entries:
-
                 new_entry = TimeTableEntry(
                     day=entry.day,
                     slot=entry.slot,
@@ -65,7 +65,7 @@ def generate_timetable_task(self: Task, timetable_id: int, user_id: int, force_g
                     class_id=entry.class_id,
                     subject_id=entry.subject_id,
                     lab_id=entry.lab_id,
-                    role=entry.role
+                    role=entry.role,
                 )
 
                 all_entries.append(new_entry)
@@ -79,16 +79,15 @@ def generate_timetable_task(self: Task, timetable_id: int, user_id: int, force_g
             db.commit()
 
         except Exception as e:
-
             db.rollback()
 
-            if timetable is not None:
-                stmt = select(TimeTable).where(TimeTable.id == timetable_id, TimeTable.user_id == user_id)
-                timetable = db.scalars(stmt).first()
-            
+            stmt = select(TimeTable).where(
+                TimeTable.id == timetable_id, TimeTable.user_id == user_id
+            )
+            timetable = db.scalars(stmt).first()
+
             if timetable is not None:
                 timetable.status = TimeTableStatus.Active
-
 
             db.commit()
 

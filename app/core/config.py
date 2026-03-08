@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings
 
 load_dotenv()
 
+
 class Settings(BaseSettings):
     APP_NAME: str = "TimeTable Backend Remake"
     database_url: str

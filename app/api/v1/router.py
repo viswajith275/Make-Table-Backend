@@ -1,11 +1,14 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth
-from app.api.v1.endpoints import timetable
-from app.api.v1.endpoints import class_
-from app.api.v1.endpoints import teacher
-from app.api.v1.endpoints import subject
-from app.api.v1.endpoints import teacher_assignment
-from app.api.v1 .endpoints import generation
+
+from app.api.v1.endpoints import (
+    auth,
+    class_,
+    generation,
+    subject,
+    teacher,
+    teacher_assignment,
+    timetable,
+)
 
 router = APIRouter()
 

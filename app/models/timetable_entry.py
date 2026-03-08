@@ -1,33 +1,38 @@
-from sqlalchemy import ForeignKey, Enum
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 # import uuid    use as a secondary level of primary for security
 from datetime import datetime
 from typing import Optional
+
+from sqlalchemy import Enum, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.db.base_class import Base
-from app.models.enums import WeekDayEnum, TeacherRole
+from app.models.enums import TeacherRole, WeekDayEnum
+
 
 class TimeTableEntry(Base):
-
-    __tablename__ = 'timetable_entries'  # type: ignore
+    __tablename__ = "timetable_entries"  # type: ignore
 
     id: Mapped[int] = mapped_column(primary_key=True)
     day: Mapped[WeekDayEnum] = mapped_column(Enum(WeekDayEnum))
     slot: Mapped[int] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow())
 
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
-    timetable_id: Mapped[int] = mapped_column(ForeignKey('timetables.id'))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    timetable_id: Mapped[int] = mapped_column(ForeignKey("timetables.id"))
     teacher_id: Mapped[int] = mapped_column(ForeignKey("teachers.id"))
     class_id: Mapped[int] = mapped_column(ForeignKey("classes.id"))
     subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.id"))
-    lab_id: Mapped[Optional[int]] = mapped_column(ForeignKey('classes.id'))
+    lab_id: Mapped[Optional[int]] = mapped_column(ForeignKey("classes.id"))
     role: Mapped[TeacherRole] = mapped_column()
 
-
-    #relationships
-    user: Mapped['User'] = relationship("User", back_populates='entries') # type: ignore
-    timetable: Mapped['TimeTable'] = relationship("TimeTable", back_populates='entries') # type: ignore
-    teacher: Mapped['Teacher'] = relationship("Teacher", back_populates="entries") # type: ignore
-    class_: Mapped['Class'] = relationship("Class", back_populates="entries", foreign_keys=[class_id]) # type: ignore
-    subject: Mapped['Subject'] = relationship("Subject", back_populates="entries")  # type: ignore
-    lab: Mapped['Class'] = relationship("Class", back_populates="lab_entries", foreign_keys=[lab_id]) # type: ignore
+    # relationships
+    user: Mapped["User"] = relationship("User", back_populates="entries")  # type: ignore
+    timetable: Mapped["TimeTable"] = relationship("TimeTable", back_populates="entries")  # type: ignore
+    teacher: Mapped["Teacher"] = relationship("Teacher", back_populates="entries")  # type: ignore
+    class_: Mapped["Class"] = relationship(
+        "Class", back_populates="entries", foreign_keys=[class_id]
+    )  # type: ignore
+    subject: Mapped["Subject"] = relationship("Subject", back_populates="entries")  # type: ignore
+    lab: Mapped["Class"] = relationship(
+        "Class", back_populates="lab_entries", foreign_keys=[lab_id]
+    )  # type: ignore
