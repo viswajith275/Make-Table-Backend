@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
@@ -10,7 +12,8 @@ router = APIRouter()
 
 
 @router.get(
-    "/classes/{class_id}/entries", response_model=timetable_entry.TimeTableEntryBase
+    "/classes/{class_id}/entries",
+    response_model=List[timetable_entry.TimeTableEntryBase],
 )
 def get_timetable_entries_class(
     request: Request,
@@ -26,7 +29,7 @@ def get_timetable_entries_class(
 
 @router.get(
     "/teacher/{teacher_id}/entries",
-    response_model=timetable_entry.TimeTableEntryResponse,
+    response_model=List[timetable_entry.TimeTableEntryResponse],
 )
 def get_timetable_entries_teacher(
     request: Request,

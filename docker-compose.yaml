@@ -1,0 +1,82 @@
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: timetable_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fastapitimetable
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - timetable_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: timetable_redis
+    ports:
+      - "6371:6371"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - timetable_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: timetable_api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/fastapitimetable
+      REDIS_URL: redis://redis:6371/0
+      SECRET_KEY: ${SECRET_KEY:-f6ef82446b940077e6c35222a4a2ea00bdf13e17ee091a02e1b1d2afae076fa2e7a7accd7c277f13a250c173ed87771da62225b3898b877e2a5b460eee4d705d}
+      ACCESS_TOKEN_EXPIRE_MINUTES: 15
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - timetable_network
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: timetable_celery
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/fastapitimetable
+      REDIS_URL: redis://redis:6371/0
+      SECRET_KEY: ${SECRET_KEY:-f6ef82446b940077e6c35222a4a2ea00bdf13e17ee091a02e1b1d2afae076fa2e7a7accd7c277f13a250c173ed87771da62225b3898b877e2a5b460eee4d705d}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A app.worker worker --loglevel=info
+    networks:
+      - timetable_network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  timetable_network:
+    driver: bridge

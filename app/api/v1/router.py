@@ -8,6 +8,7 @@ from app.api.v1.endpoints import (
     teacher,
     teacher_assignment,
     timetable,
+    timetable_entry,
 )
 
 router = APIRouter()
@@ -19,3 +20,4 @@ router.include_router(teacher.router, tags=["Teacher"])
 router.include_router(subject.router, tags=["Subject"])
 router.include_router(teacher_assignment.router, tags=["Assignment"])
 router.include_router(generation.router, tags=["TimeTable Generation"])
+router.include_router(timetable_entry.router, tags=["TimeTable Entries"])
