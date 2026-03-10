@@ -8,67 +8,73 @@ def apply_one_class_per_slot(builder: "TimeTableGenerator") -> None:
     for a in builder.assignments:
         assigned_to_teacher[a.teacher.name].append(a)
 
-        # Teacher should take only one class at a time
+    # Teacher should take only one class at a time
 
-        for teacher, teacher_assignments in assigned_to_teacher.items():
-            for d in builder.days:
-                for s in builder.slots:
-                    error_msg = f"Teacher conflicts for {teacher} at slot {s}"
-                    slack = builder.create_slack(
-                        name="teacher conflict", error_msg=error_msg, weight=1000000
+    for teacher, teacher_assignments in assigned_to_teacher.items():
+        for d in builder.days:
+            for s in builder.slots:
+                builder.model.add(
+                    sum(
+                        builder.shifts[(assignment.id, d, s)]
+                        for assignment in teacher_assignments
                     )
-
-                    builder.model.add(
-                        sum(
-                            builder.shifts[(assignment.id, d, s)]
-                            for assignment in teacher_assignments
-                        )
-                        + slack
-                        == 1
-                    )
+                    <= 1
+                )
 
 
 def apply_teacher_weekly_limit(builder: "TimeTableGenerator") -> None:
 
+    assigned_to_teacher = defaultdict(list)
     for assignment in builder.assignments:
-        max_classes_per_week = getattr(assignment.teacher, "max_classes_week", None)
+        assigned_to_teacher[assignment.teacher.name].append(assignment)
 
-        # Teacher should not take more than the weekly limit
+    for teacher_name, teacher_assignments in assigned_to_teacher.items():
+        max_per_week = teacher_assignments[0].teacher.max_classes_day
+        if max_per_week is None:
+            continue
 
-        if max_classes_per_week is not None:
-            error_msg = f"Max weekly classes exceeded {assignment.teacher.name} (limit: {max_classes_per_week})"
-            slack = builder.create_slack(
-                name="teacher weekly limit", error_msg=error_msg, weight=10000
+        error_msg = (
+            f"Max weekly classes exceeded {teacher_name} (limit: {max_per_week})"
+        )
+        slack = builder.create_slack(
+            name="teacher weekly limit", error_msg=error_msg, weight=500_000
+        )
+        builder.model.add(
+            sum(
+                builder.shifts[(a.id, d, s)]
+                for a in teacher_assignments
+                for s in builder.slots
+                for d in builder.days
             )
-
-            builder.model.add(
-                sum(
-                    builder.shifts[(assignment.id, d, s)]
-                    for s in builder.slots
-                    for d in builder.days
-                )
-                <= max_classes_per_week + slack
-            )
+            <= max_per_week + slack
+        )
 
 
 def apply_teacher_daily_limit(builder: "TimeTableGenerator") -> None:
 
+    assigned_to_teacher = defaultdict(list)
     for assignment in builder.assignments:
-        max_class_per_day = getattr(assignment.teacher, "max_classes_day", None)
+        assigned_to_teacher[assignment.teacher.name].append(assignment)
 
-        # TEacher should not take more than the daily limit
-
-        if max_class_per_day is not None:
-            for d in builder.days:
-                error_msg = f"max weekly classes exceeded {assignment.teacher.name} (limit: {max_class_per_day})"
-                slack = builder.create_slack(
-                    name="teacher daily limit", error_msg=error_msg, weight=10000
+    for teacher_name, teacher_assignments in assigned_to_teacher.items():
+        max_per_day = teacher_assignments[0].teacher.max_classes_day
+        if max_per_day is None:
+            continue
+        for d in builder.days:
+            error_msg = (
+                f"max weekly classes exceeded {teacher_name} (limit: {max_per_day})"
+            )
+            slack = builder.create_slack(
+                name="teacher daily limit", error_msg=error_msg, weight=500_000
+            )
+            builder.model.add(
+                sum(
+                    builder.shifts[(a.id, d, s)]
+                    for a in teacher_assignments
+                    for s in builder.slots
                 )
-
-                builder.model.add(
-                    sum(builder.shifts[(assignment.id, d, s)] for s in builder.slots)
-                    <= max_class_per_day + slack
-                )
+                <= max_per_day + slack
+            )
 
 
 def apply_teacher_consecutive_limit(builder: "TimeTableGenerator") -> None:
@@ -102,7 +108,9 @@ def apply_teacher_consecutive_limit(builder: "TimeTableGenerator") -> None:
             ):
                 error_msg = f"Max consecutive classes exceed {teacher[0]} (limit: {max_consecutive_classes_per_day})"
                 slack = builder.create_slack(
-                    name="teacher consecutive limit", error_msg=error_msg, weight=10000
+                    name="teacher consecutive limit",
+                    error_msg=error_msg,
+                    weight=500_000,
                 )
 
                 builder.model.add(

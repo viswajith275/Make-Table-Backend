@@ -4,7 +4,7 @@ from collections import defaultdict
 def apply_subject_minimum_daily_limit(builder: "TimeTableGenerator") -> None:
 
     for assignment in builder.assignments:
-        min_subject_daily_val = getattr(assignment.subject, "min_classes_day", None)
+        min_subject_daily_val = assignment.subject.min_classes_day
 
         # Subject should occur atleast specified amount per day
 
@@ -14,20 +14,19 @@ def apply_subject_minimum_daily_limit(builder: "TimeTableGenerator") -> None:
                 slack = builder.create_slack(
                     name="subject minimum classes per day",
                     error_msg=error_msg,
-                    weight=10000,
+                    weight=500_000,
                 )
 
                 builder.model.add(
                     sum(builder.shifts[(assignment.id, d, s)] for s in builder.slots)
-                    + slack
-                    >= min_subject_daily_val
+                    >= min_subject_daily_val - slack
                 )
 
 
 def apply_subject_maximum_daily_limit(builder: "TimeTableGenerator") -> None:
 
     for assignment in builder.assignments:
-        max_subject_daily_limit = getattr(assignment.subject, "max_classes_day", None)
+        max_subject_daily_limit = assignment.subject.max_classes_day
 
         # Subject should not occur more than specified amount per day
 
@@ -37,7 +36,7 @@ def apply_subject_maximum_daily_limit(builder: "TimeTableGenerator") -> None:
                 slack = builder.create_slack(
                     name="subject maximum classes per day",
                     error_msg=error_msg,
-                    weight=10000,
+                    weight=500_000,
                 )
 
                 builder.model.add(
@@ -58,7 +57,7 @@ def apply_subject_minimum_weekly_limit(builder: "TimeTableGenerator") -> None:
             slack = builder.create_slack(
                 name="subject minimum classes per week",
                 error_msg=error_msg,
-                weight=10000,
+                weight=500_000,
             )
 
             builder.model.add(
@@ -67,8 +66,7 @@ def apply_subject_minimum_weekly_limit(builder: "TimeTableGenerator") -> None:
                     for s in builder.slots
                     for d in builder.days
                 )
-                + slack
-                >= min_subject_weekly_val
+                >= min_subject_weekly_val - slack
             )
 
 
@@ -86,7 +84,7 @@ def apply_subject_maximum_weekly_limit(builder: "TimeTableGenerator") -> None:
             slack = builder.create_slack(
                 name="subject maximum classes per week",
                 error_msg=error_msg,
-                weight=10000,
+                weight=500_000,
             )
 
             builder.model.add(
@@ -103,7 +101,7 @@ def apply_subject_minimum_consecutive_limit(builder: "TimeTableGenerator") -> No
 
     for assignment in builder.assignments:
         min_subject_consecutive_val = getattr(
-            assignment.subject, "min_classes_consecuive", None
+            assignment.subject, "min_classes_consecutive", None
         )
 
         # Subject should not consecutively taken more than specified amount per day
@@ -130,7 +128,7 @@ def apply_subject_minimum_consecutive_limit(builder: "TimeTableGenerator") -> No
                             slack = builder.create_slack(
                                 name="subject single class",
                                 error_msg=error_msg,
-                                weight=10000,
+                                weight=500_000,
                             )
 
                             builder.model.add(
@@ -142,7 +140,7 @@ def apply_subject_minimum_consecutive_limit(builder: "TimeTableGenerator") -> No
                             slack = builder.create_slack(
                                 name="subject impossible for consecutive class",
                                 error_msg=error_msg,
-                                weight=10000,
+                                weight=500_000,
                             )
 
                             builder.model.add(slack >= 1).only_enforce_if(cur_slot)
@@ -158,12 +156,9 @@ def apply_subject_minimum_consecutive_limit(builder: "TimeTableGenerator") -> No
                         if s > 0:
                             prev = total_slots_per_day[s - 1]
 
-                            builder.model.add_bool_and(
-                                [cur_slot, prev.Not()]
-                            ).only_enforce_if(is_start)
-                            builder.model.add_bool_or(
-                                [cur_slot.Not(), prev]
-                            ).only_enforce_if(is_start.Not())
+                            builder.model.add(is_start <= cur_slot)
+                            builder.model.add(is_start <= prev.Not())
+                            builder.model.add(is_start >= cur_slot + prev.Not() - 1)
 
                         else:
                             builder.model.add(is_start == cur_slot)
@@ -173,12 +168,12 @@ def apply_subject_minimum_consecutive_limit(builder: "TimeTableGenerator") -> No
                         ) < no_of_slotes
 
                         if has_room_for_classes:
-                            for i in range(needed_consecutive_class):
+                            for i in range(1, min_subject_consecutive_val):
                                 error_msg = f"Consecutive sequence broken for {assignment.subject.name} in {assignment.class_.class_name} on {builder.index_to_day[d].value}"
                                 slack = builder.create_slack(
                                     name="subject consecutive sequence broken",
                                     error_msg=error_msg,
-                                    weight=10000,
+                                    weight=500_000,
                                 )
 
                                 builder.model.add(
@@ -190,7 +185,7 @@ def apply_subject_minimum_consecutive_limit(builder: "TimeTableGenerator") -> No
                             slack = builder.create_slack(
                                 name="subject not enough slots",
                                 error_msg=error_msg,
-                                weight=10000,
+                                weight=500_000,
                             )
 
                             builder.model.add(slack >= 1).only_enforce_if(is_start)
@@ -212,13 +207,13 @@ def apply_subject_maximum_consecutive_limit(builder: "TimeTableGenerator") -> No
                 ]
 
                 for i in range(
-                    len(total_slots_per_day) - max_subeject_consecutive_limit
+                    len(total_slots_per_day) - max_subeject_consecutive_limit + 1
                 ):
                     error_msg = f"Max consecutive classes exceeded for {assignment.subject.name} in {assignment.class_.class_name} on {builder.index_to_day[d].value} (limit: {max_subeject_consecutive_limit})"
                     slack = builder.create_slack(
                         name="subject maximum consecutive class",
                         error_msg=error_msg,
-                        weight=10000,
+                        weight=500_000,
                     )
 
                     builder.model.add(
@@ -256,7 +251,7 @@ def apply_subject_per_lab(builder: "TimeTableGenerator") -> None:
                     f"Lab class conflict of {class_} on {builder.index_to_day[d]}"
                 )
                 slack = builder.create_slack(
-                    name="lab conflicts", error_msg=error_msg, weight=10000
+                    name="lab conflicts", error_msg=error_msg, weight=100_000_000
                 )
 
                 builder.model.add(
@@ -272,15 +267,15 @@ def apply_subject_hardness(builder: "TimeTableGenerator") -> None:
 
     # Applying that hard subjects appear earlier than easy subjects
 
-    slot_cost = {s: (s - 1) ** 2 for s in builder.slots}
+    slot_cost = {s: s**2 for s in builder.slots}
 
     builder.silent_minimization.extend(
         builder.shifts[(assignment.id, d, s)]
         * slot_cost[s]
         * builder.hardness_map[assignment.subject.hardness]
-        for s in builder.slots
-        for d in builder.days
         for assignment in builder.assignments
+        for d in builder.days
+        for s in builder.slots
     )
 
 

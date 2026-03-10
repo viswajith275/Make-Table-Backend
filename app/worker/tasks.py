@@ -47,8 +47,15 @@ def generate_timetable_task(
 
             violations_data = [violation.model_dump() for violation in violations]
 
-            if violations and not force_generation:
+            if violations_data and not force_generation:
+                timetable.violations = violations_data
+
+                db.commit()
+
                 raise BadRequest(f"Conflics during creation: {violations_data}")
+
+            if not timetable_entries:
+                raise BadRequest("No possible TimeTable!")
 
             for prev_entry in timetable.entries:
                 db.delete(prev_entry)
@@ -78,7 +85,7 @@ def generate_timetable_task(
 
             db.commit()
 
-        except Exception as e:
+        except Exception as e:  # When doing logging log this error
             db.rollback()
 
             stmt = select(TimeTable).where(
@@ -87,8 +94,6 @@ def generate_timetable_task(
             timetable = db.scalars(stmt).first()
 
             if timetable is not None:
-                timetable.status = TimeTableStatus.Active
+                timetable.status = TimeTableStatus.Failed
 
             db.commit()
-
-            raise e

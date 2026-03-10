@@ -24,4 +24,5 @@ class TeacherRole(str, Enum):
 
 class TimeTableStatus(str, Enum):
     Active = "Active"
+    Failed = "Failed"
     Processing = "Processing"

@@ -1,7 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from random import randint
-from typing import List, Tuple
+from typing import List
 
 from ortools.sat.python import cp_model
 
@@ -51,26 +51,30 @@ class TimeTableGenerator:
         # Change values accordingly for better performaces (Dont forget)
 
         self.hardness_map: dict[Hardness, int] = {
-            Hardness.Low: 1,
-            Hardness.Med: 2,
-            Hardness.High: 3,
+            Hardness.Low: 500,
+            Hardness.Med: 1_000,
+            Hardness.High: 2_000,
         }
         self.distance_weight: int = 5
-        self.max_concern_distance: int = 3
-        self.weight: int = 50000
+        self.max_concern_distance: int = 2
+        self.weight: int = 50_000
 
         self.error_slacks: dict[str, SlackTracker] = {}
+        self.slack_counter: int = 0
         self.silent_minimization: list = []
 
     def create_slack(
         self, name: str, weight: int, error_msg: str, upper_bound: int = 100
     ) -> cp_model.IntVar:
+        self.slack_counter += 1
+
+        unique_key = f"{name}_{self.slack_counter}"
 
         slack_var: cp_model.IntVar = self.model.new_int_var(
-            lb=0, ub=upper_bound, name=f"slack_{name}"
+            lb=0, ub=upper_bound, name=f"slack_{unique_key}"
         )
 
-        self.error_slacks[name] = SlackTracker(
+        self.error_slacks[unique_key] = SlackTracker(
             variable=slack_var, weight=weight, error_msg=error_msg
         )
 
@@ -122,6 +126,7 @@ class TimeTableGenerator:
         subject.apply_subject_maximum_weekly_limit(self)
         subject.apply_subject_minimum_consecutive_limit(self)
         subject.apply_subject_maximum_consecutive_limit(self)
+        subject.apply_subject_per_lab(self)
         subject.apply_subject_hardness(self)
         subject.apply_hard_subject_distances(self)
 
