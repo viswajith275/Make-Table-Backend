@@ -227,6 +227,15 @@ class TimeTableGenerator:
                             role=assignment.role,
                         )
                     )
+        else:
+            violations.append(
+                ViolationCreate(
+                    name="Invalid TimeTable Constraints",
+                    description="TimeTable not possible, due to conflicts in TimeTable",
+                    severity=999999,
+                    violation_amount=999999,
+                )
+            )
 
         # Handle timetable model down condition
 
