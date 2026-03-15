@@ -24,7 +24,7 @@ def get_password_hash(password: str) -> str:
 def create_token(
     user_id: int,
     token_type: str,
-    expires_time: timedelta | None = None,
+    expires_time: timedelta = timedelta(minutes=15),
     unique_id: str | None = None,
     secret: str | None = None,
 ) -> str:
@@ -40,8 +40,7 @@ def create_token(
     if secret:
         to_encode["secret"] = secret
 
-    if expires_time:
-        expire = datetime.utcnow() + expires_time
+    expire = datetime.utcnow() + expires_time
 
     to_encode.update({"exp": expire})
 
