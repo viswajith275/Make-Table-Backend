@@ -1,5 +1,5 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import Conflict
 from app.core.security import get_password_hash, verify_password
@@ -7,24 +7,24 @@ from app.models.user import User
 from app.schemas.user import UserCreate
 
 
-def get_by_email(db: Session, email: str) -> User | None:
+async def get_by_email(db: AsyncSession, email: str) -> User | None:
 
-    stmt = select(User).where(User.email == email)
-    return db.scalars(stmt).first()
-
-
-def get_by_username(db: Session, username: str) -> User | None:
-
-    stmt = select(User).where(User.username == username)
-    return db.scalars(stmt).first()
+    stmt = await db.execute(select(User).where(User.email == email))
+    return stmt.scalar_one_or_none()
 
 
-def create_user(db: Session, user_in: UserCreate) -> User:
+async def get_by_username(db: AsyncSession, username: str) -> User | None:
 
-    if get_by_email(db, user_in.email):
+    stmt = await db.execute(select(User).where(User.username == username))
+    return stmt.scalar_one_or_none()
+
+
+async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
+
+    if await get_by_email(db, user_in.email) is not None:
         raise Conflict(message=f"user with email {user_in.email} already exists!")
 
-    if get_by_username(db, user_in.username):
+    if await get_by_username(db, user_in.username) is not None:
         raise Conflict(message=f"User with usernaem {user_in.username} already exists!")
 
     hashed_pasword = get_password_hash(user_in.password)
@@ -36,15 +36,17 @@ def create_user(db: Session, user_in: UserCreate) -> User:
     )
 
     db.add(user_obj)
-    db.commit()
-    db.refresh(user_obj)
+    await db.commit()
+    await db.refresh(user_obj)
 
     return user_obj
 
 
-def authenticate_user(db: Session, username: str, password: str) -> User | None:
+async def authenticate_user(
+    db: AsyncSession, username: str, password: str
+) -> User | None:
 
-    user = get_by_username(db, username)
+    user = await get_by_username(db, username)
 
     if not user:
         return None

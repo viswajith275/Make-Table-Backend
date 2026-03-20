@@ -1,7 +1,7 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
 from app.models.user import User
@@ -15,14 +15,14 @@ router = APIRouter()
     "/teachers/{teacher_id}/assignments",
     response_model=List[teacher_assignment.TeacherAssignmentResponse],
 )
-def fetch_teacher_assignemnts(
+async def fetch_teacher_assignemnts(
     request: Request,
     teacher_id: int,
     current_user: User = Depends(deps.get_current_active_user),
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
 ):
 
-    return teacher_assignment_service.fetch_teacher_assignments(
+    return await teacher_assignment_service.fetch_teacher_assignments(
         teacher_id=teacher_id, user_id=current_user.id, db=db
     )
 
@@ -30,14 +30,14 @@ def fetch_teacher_assignemnts(
 @router.post(
     "/assignments", response_model=teacher_assignment.TeacherAssignmentResponse
 )
-def create_assignment(
+async def create_assignment(
     request: Request,
     assignment_request: teacher_assignment.TeacherAssignmentCreate,
     current_user: User = Depends(deps.get_current_active_user),
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
 ):
 
-    return teacher_assignment_service.create_assignment(
+    return await teacher_assignment_service.create_assignment(
         user_id=current_user.id, assignment_request=assignment_request, db=db
     )
 
@@ -45,15 +45,15 @@ def create_assignment(
 @router.patch(
     "/assignments/{id}", response_model=teacher_assignment.TeacherAssignmentResponse
 )
-def update_assignment(
+async def update_assignment(
     request: Request,
     id: int,
     assignment_patch: teacher_assignment.TeacherAssignmentUpdate,
     current_user: User = Depends(deps.get_current_active_user),
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
 ):
 
-    return teacher_assignment_service.update_assignment(
+    return await teacher_assignment_service.update_assignment(
         assignment_id=id,
         user_id=current_user.id,
         assignment_patch=assignment_patch,
@@ -62,13 +62,13 @@ def update_assignment(
 
 
 @router.delete("/assignments/{id}")
-def delete_assignment(
+async def delete_assignment(
     request: Request,
     id: int,
     current_user: User = Depends(deps.get_current_active_user),
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
 ):
 
-    return teacher_assignment_service.delete_assignment(
+    return await teacher_assignment_service.delete_assignment(
         assignment_id=id, user_id=current_user.id, db=db
     )

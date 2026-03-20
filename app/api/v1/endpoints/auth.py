@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
 from app.core.config import settings
@@ -15,28 +15,28 @@ router = APIRouter()
 
 
 @router.get("/me", response_model=UsersResponse)
-def read_user_me(current_user: User = Depends(deps.get_current_active_user)):
+async def read_user_me(current_user: User = Depends(deps.get_current_active_user)):
     return current_user
 
 
 @router.post(
     "/register", response_model=UsersResponse, status_code=status.HTTP_201_CREATED
 )
-def create_user(
-    request: Request, user_in: UserCreate, db: Session = Depends(deps.get_db)
+async def create_user(
+    request: Request, user_in: UserCreate, db: AsyncSession = Depends(deps.get_db)
 ):
 
-    return user_service.create_user(db, user_in)
+    return await user_service.create_user(db=db, user_in=user_in)
 
 
 @router.post("/login", response_model=UsersResponse)
-def login_user(
+async def login_user(
     request: Request,
     response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
 ):
-    user = user_service.authenticate_user(
+    user = await user_service.authenticate_user(
         username=form_data.username, password=form_data.password, db=db
     )
 
@@ -46,7 +46,7 @@ def login_user(
             detail="Incorrect username or password!",
         )
 
-    token = deps.create_refresh_token(db=db, user_id=user.id)
+    token = await deps.create_refresh_token(db=db, user_id=user.id)
 
     access_token = create_token(
         user_id=user.id,
@@ -82,8 +82,8 @@ def login_user(
 
 
 @router.post("/refresh")
-def refresh_tokens(
-    request: Request, response: Response, db: Session = Depends(deps.get_db)
+async def refresh_tokens(
+    request: Request, response: Response, db: AsyncSession = Depends(deps.get_db)
 ):
 
     refresh_token = request.cookies.get("refresh_token")
@@ -93,7 +93,7 @@ def refresh_tokens(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token is missing!"
         )
 
-    user_id = deps.validate_refresh_token(refresh_token=refresh_token, db=db)
+    user_id = await deps.validate_refresh_token(refresh_token=refresh_token, db=db)
 
     access_token = create_token(
         user_id=user_id,
@@ -113,13 +113,13 @@ def refresh_tokens(
 
 
 @router.post("/logout")
-def logout_user(
-    request: Request, response: Response, db: Session = Depends(deps.get_db)
+async def logout_user(
+    request: Request, response: Response, db: AsyncSession = Depends(deps.get_db)
 ):
 
     refresh_token = request.cookies.get("refresh_token")
 
-    deps.delete_refresh_token(refresh_token, db)
+    await deps.delete_refresh_token(refresh_token=refresh_token, db=db)
 
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")

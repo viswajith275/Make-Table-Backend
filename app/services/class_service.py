@@ -1,7 +1,8 @@
 from typing import Dict, List
 
-from sqlalchemy import select, update
-from sqlalchemy.orm import Session
+from sqlalchemy import exists, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.core.exceptions import BadRequest, Conflict, NotFound
 from app.models.class_ import Class
@@ -10,14 +11,16 @@ from app.models.timetable import TimeTable
 from app.schemas.class_ import ClassCreate, ClassUpdate
 
 
-def create_class(
-    timetable_id: int, user_id: int, class_request: ClassCreate, db: Session
+async def create_class(
+    timetable_id: int, user_id: int, class_request: ClassCreate, db: AsyncSession
 ) -> Class:
 
-    stmt = select(TimeTable).where(
-        TimeTable.id == timetable_id, TimeTable.user_id == user_id
+    stmt = await db.execute(
+        select(TimeTable).where(
+            TimeTable.id == timetable_id, TimeTable.user_id == user_id
+        )
     )
-    timetable = db.scalars(stmt).first()
+    timetable = stmt.scalar_one_or_none()
 
     if timetable is None:
         raise NotFound(message="TimeTable not found!")
@@ -26,10 +29,15 @@ def create_class(
         raise Conflict("The timetable is being processed! wait till completion")
 
     # if needed add a constraint to check existing class
-    stmt = select(Class).where(
-        Class.class_name == class_request.class_name, Class.timetable_id == timetable.id
+    stmt = await db.execute(
+        select(
+            exists().where(
+                Class.class_name == class_request.class_name,
+                Class.timetable_id == timetable.id,
+            )
+        )
     )
-    existing = db.scalars(stmt).first()
+    existing = stmt.scalar()
 
     if existing:
         raise Conflict("This class already exists!")
@@ -43,19 +51,21 @@ def create_class(
     )
 
     db.add(class_obj)
-    db.commit()
-    db.refresh(class_obj)
+    await db.commit()
+    await db.refresh(class_obj)
 
     return class_obj
 
 
-def fetch_timetable_classes(
-    timetable_id: int, user_id: int, db: Session
+async def fetch_timetable_classes(
+    timetable_id: int, user_id: int, db: AsyncSession
 ) -> List[Class]:
-    stmt = select(TimeTable).where(
-        TimeTable.id == timetable_id, TimeTable.user_id == user_id
+    stmt = await db.execute(
+        select(TimeTable)
+        .where(TimeTable.id == timetable_id, TimeTable.user_id == user_id)
+        .options(selectinload(TimeTable.classes))
     )
-    timetable = db.scalars(stmt).first()
+    timetable = stmt.scalar_one_or_none()
 
     if timetable is None or not timetable.classes:
         raise NotFound("No classes found!")
@@ -63,12 +73,12 @@ def fetch_timetable_classes(
     return timetable.classes
 
 
-def update_class(
+async def update_class(
     timetable_id: int,
     class_id: int,
     user_id: int,
     class_patch: ClassUpdate,
-    db: Session,
+    db: AsyncSession,
 ) -> Class:
 
     patch_data = class_patch.model_dump(exclude_unset=True)
@@ -79,44 +89,54 @@ def update_class(
     class_name = patch_data.get("class_name")
 
     if class_name is not None:
-        stmt = select(Class).where(
-            Class.class_name == class_name,
-            Class.timetable_id == timetable_id,
-            Class.user_id == user_id,
+        stmt = await db.execute(
+            select(
+                exists().where(
+                    Class.class_name == class_name,
+                    Class.timetable_id == timetable_id,
+                    Class.user_id == user_id,
+                )
+            )
         )
-        existing = db.scalars(stmt).first()
+        existing = stmt.scalar()
 
         if existing:
             raise Conflict("This class already exists!")
 
-    stmt = select(TimeTable).where(
-        TimeTable.id == timetable_id, TimeTable.user_id == user_id
+    stmt = await db.execute(
+        select(TimeTable).where(
+            TimeTable.id == timetable_id, TimeTable.user_id == user_id
+        )
     )
-    timetable = db.scalars(stmt).first()
+    timetable = stmt.scalars().first()
 
     if timetable is not None and timetable.status == TimeTableStatus.Processing:
         raise Conflict("The timetable is being processed! wait till completion")
 
-    stmt = (
+    stmt = await db.execute(
         update(Class)
         .where(Class.id == class_id, Class.user_id == user_id)
         .values(**patch_data)
         .returning(Class)
     )
-    class_obj = db.execute(stmt).scalar_one_or_none()
+    class_obj = stmt.scalar_one_or_none()
 
-    if not class_obj:
+    if class_obj is None:
         raise NotFound("Class not found!")
 
-    db.commit()
+    await db.commit()
 
     return class_obj
 
 
-def delete_class(class_id: int, user_id: int, db: Session) -> Dict[str, str]:
+async def delete_class(class_id: int, user_id: int, db: AsyncSession) -> Dict[str, str]:
 
-    stmt = select(Class).where(Class.id == class_id, Class.user_id == user_id)
-    class_ = db.scalars(stmt).one_or_none()
+    stmt = await db.execute(
+        select(Class)
+        .where(Class.id == class_id, Class.user_id == user_id)
+        .options(joinedload(Class.timetable))
+    )
+    class_ = stmt.scalar_one_or_none()
 
     if class_ is None:
         raise NotFound("Class not found!")
@@ -124,8 +144,8 @@ def delete_class(class_id: int, user_id: int, db: Session) -> Dict[str, str]:
     if class_.timetable.status == TimeTableStatus.Processing:
         raise Conflict("The timetable is being processed! wait till completion")
 
-    db.delete(class_)
+    await db.delete(class_)
 
-    db.commit()
+    await db.commit()
 
     return {"message": f"Class with id {class_id} deleted successfully"}

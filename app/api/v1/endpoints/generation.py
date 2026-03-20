@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
 from app.models.user import User
@@ -12,17 +12,17 @@ router = APIRouter()
 @router.post(
     "/timetable/{timetable_id}/generate", response_model=generation.GenerateResponse
 )
-def create_generation_task(
+async def create_generation_task(
     timetable_id: int,
     request: Request,
     force_generation: bool = Query(
         default=False, description="Force generation by ignoring the constraints!"
     ),
     current_user: User = Depends(deps.get_current_active_user),
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
 ):
 
-    return timetable_service.generate_timetable_task(
+    return await timetable_service.generate_timetable_task(
         timetable_id=timetable_id,
         user_id=current_user.id,
         db=db,
@@ -33,12 +33,12 @@ def create_generation_task(
 @router.get(
     "/timetable/{timetable_id}/status", response_model=generation.GenerateResponse
 )
-def check_timetable_status(
+async def check_timetable_status(
     timetable_id: int,
     current_user: User = Depends(deps.get_current_active_user),
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
 ):
 
-    return timetable_service.current_timetable_status(
+    return await timetable_service.current_timetable_status(
         timetable_id=timetable_id, user_id=current_user.id, db=db
     )

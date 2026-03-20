@@ -13,31 +13,31 @@ router = APIRouter()
 
 @router.get(
     "/classes/{class_id}/entries",
-    response_model=List[timetable_entry.TimeTableEntryBase],
+    response_model=List[timetable_entry.ClassTimeTableEntryResponse],
 )
-def get_timetable_entries_class(
+async def get_timetable_entries_class(
     request: Request,
     class_id: int,
     current_user: User = Depends(deps.get_current_active_user),
     db: Session = Depends(deps.get_db),
 ):
 
-    return timetable_entry_service.fetch_class_entries(
+    return await timetable_entry_service.fetch_class_entries(
         class_id=class_id, user_id=current_user.id, db=db
     )
 
 
 @router.get(
     "/teacher/{teacher_id}/entries",
-    response_model=List[timetable_entry.TimeTableEntryResponse],
+    response_model=List[timetable_entry.TeacherTimeTableEntryResponse],
 )
-def get_timetable_entries_teacher(
+async def get_timetable_entries_teacher(
     request: Request,
     teacher_id: int,
     current_user: User = Depends(deps.get_current_active_user),
     db: Session = Depends(deps.get_db),
 ):
 
-    return timetable_entry_service.fetch_teacher_entries(
+    return await timetable_entry_service.fetch_teacher_entries(
         teacher_id=teacher_id, user_id=current_user.id, db=db
     )

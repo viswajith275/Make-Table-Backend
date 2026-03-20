@@ -1,7 +1,9 @@
 from typing import Dict, List
 
-from sqlalchemy import select, update
-from sqlalchemy.orm import Session
+from sqlalchemy import exists, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.strategy_options import selectinload
 
 from app.core.exceptions import BadRequest, Conflict, NotFound
 from app.models.class_ import Class
@@ -15,24 +17,30 @@ from app.schemas.teacher_assignment import (
 )
 
 
-def create_assignment(
-    user_id: int, assignment_request: TeacherAssignmentCreate, db: Session
+async def create_assignment(
+    user_id: int, assignment_request: TeacherAssignmentCreate, db: AsyncSession
 ) -> TeacherAssignment:
 
-    stmt = select(TeacherAssignment).where(
-        TeacherAssignment.class_id == assignment_request.class_id,
-        TeacherAssignment.teacher_id == assignment_request.teacher_id,
-        TeacherAssignment.subject_id == assignment_request.subject_id,
+    stmt = await db.execute(
+        select(
+            exists().where(
+                TeacherAssignment.class_id == assignment_request.class_id,
+                TeacherAssignment.teacher_id == assignment_request.teacher_id,
+                TeacherAssignment.subject_id == assignment_request.subject_id,
+            )
+        )
     )
-    existing = db.scalars(stmt).first()
+    existing = stmt.scalar()
 
     if existing:
         raise Conflict("Assignment already exists!")
 
-    stmt = select(Teacher).where(
-        Teacher.id == assignment_request.teacher_id, Teacher.user_id == user_id
+    stmt = await db.execute(
+        select(Teacher)
+        .where(Teacher.id == assignment_request.teacher_id, Teacher.user_id == user_id)
+        .options(joinedload(Teacher.timetable))
     )
-    teacher = db.scalars(stmt).first()
+    teacher = stmt.scalar_one_or_none()
 
     if teacher is None:
         raise NotFound("Tacher not found!")
@@ -40,33 +48,41 @@ def create_assignment(
     if teacher.timetable.status == TimeTableStatus.Processing:
         raise Conflict("The timetable is being processed! wait till completion")
 
-    stmt = select(Class).where(
-        Class.id == assignment_request.class_id,
-        Class.user_id == user_id,
-        Class.timetable_id == teacher.timetable_id,
-        Class.isLab == False,
+    stmt = await db.execute(
+        select(Class).where(
+            Class.id == assignment_request.class_id,
+            Class.user_id == user_id,
+            Class.timetable_id == teacher.timetable_id,
+            Class.isLab == False,
+        )
     )
-    class_ = db.scalars(stmt).first()
+    class_ = stmt.scalar_one_or_none()
 
     if class_ is None:
         raise NotFound("Class not found!")
 
-    stmt = select(Subject).where(
-        Subject.id == assignment_request.subject_id,
-        Subject.user_id == user_id,
-        Subject.timetable_id == teacher.timetable_id,
+    stmt = await db.execute(
+        select(Subject).where(
+            Subject.id == assignment_request.subject_id,
+            Subject.user_id == user_id,
+            Subject.timetable_id == teacher.timetable_id,
+        )
     )
-    subject = db.scalars(stmt).first()
+    subject = stmt.scalar_one_or_none()
 
     if subject is None:
         raise NotFound("Subject not found!")
 
     if assignment_request.role == TeacherRole.Class_Teacher:
-        stmt = select(TeacherAssignment).where(
-            TeacherAssignment.teacher_id == teacher.id,
-            TeacherAssignment.role == TeacherRole.Class_Teacher,
+        stmt = await db.execute(
+            select(
+                exists().where(
+                    TeacherAssignment.teacher_id == teacher.id,
+                    TeacherAssignment.role == TeacherRole.Class_Teacher,
+                )
+            )
         )
-        already_class_teacher = db.scalars(stmt).first()
+        already_class_teacher = stmt.scalar()
 
         if already_class_teacher:
             raise Conflict("Teacher cannot be class teacher of morethan one class!")
@@ -82,18 +98,37 @@ def create_assignment(
     )
 
     db.add(assignment_obj)
-    db.commit()
-    db.refresh(assignment_obj)
+    await db.commit()
+    await db.refresh(assignment_obj)
+
+    stmt = await db.execute(
+        select(TeacherAssignment)
+        .where(TeacherAssignment.id == assignment_obj.id)
+        .options(
+            joinedload(TeacherAssignment.subject),
+            joinedload(TeacherAssignment.class_),
+            joinedload(TeacherAssignment.teacher),
+        )
+    )
 
     return assignment_obj
 
 
-def fetch_teacher_assignments(
-    teacher_id: int, user_id: int, db: Session
+async def fetch_teacher_assignments(
+    teacher_id: int, user_id: int, db: AsyncSession
 ) -> List[TeacherAssignment]:
 
-    stmt = select(Teacher).where(Teacher.id == teacher_id, Teacher.user_id == user_id)
-    teacher = db.scalars(stmt).first()
+    stmt = await db.execute(
+        select(Teacher)
+        .where(Teacher.id == teacher_id, Teacher.user_id == user_id)
+        .options(
+            selectinload(Teacher.assignments).options(
+                joinedload(TeacherAssignment.class_),
+                joinedload(TeacherAssignment.subject),
+            )
+        )
+    )
+    teacher = stmt.scalar_one_or_none()
 
     if teacher is None or not teacher.assignments:
         raise NotFound("No assignments found!")
@@ -101,11 +136,11 @@ def fetch_teacher_assignments(
     return teacher.assignments
 
 
-def update_assignment(
+async def update_assignment(
     assignment_id: int,
     user_id: int,
     assignment_patch: TeacherAssignmentUpdate,
-    db: Session,
+    db: AsyncSession,
 ) -> TeacherAssignment:
 
     patch_data = assignment_patch.model_dump(exclude_unset=True)
@@ -115,15 +150,18 @@ def update_assignment(
 
     role = patch_data.get("role")
 
-    stmt = (
+    stmt = await db.execute(
         update(TeacherAssignment)
         .where(
             TeacherAssignment.id == assignment_id, TeacherAssignment.user_id == user_id
         )
+        .options(
+            joinedload(TeacherAssignment.class_), joinedload(TeacherAssignment.subject)
+        )
         .values(**patch_data)
         .returning(TeacherAssignment)
     )
-    assignment_obj = db.execute(stmt).scalar_one_or_none()
+    assignment_obj = stmt.scalar_one_or_none()
 
     if assignment_obj is None:
         raise NotFound("Assignment not found!")
@@ -132,26 +170,36 @@ def update_assignment(
         raise Conflict("The timetable is being processed! wait till completion")
 
     if role == TeacherRole.Class_Teacher:
-        stmt = select(TeacherAssignment).where(
-            TeacherAssignment.teacher_id == assignment_obj.teacher_id,
-            TeacherAssignment.role == TeacherRole.Class_Teacher,
+        stmt = await db.execute(
+            select(
+                exists().where(
+                    TeacherAssignment.teacher_id == assignment_obj.teacher_id,
+                    TeacherAssignment.role == TeacherRole.Class_Teacher,
+                )
+            )
         )
-        already_class_teacher = db.scalars(stmt).first()
+        already_class_teacher = stmt.scalar()
 
         if already_class_teacher:
             raise Conflict("Teacher cannot be class teacher of morethan one class!")
 
-    db.commit()
+    await db.commit()
 
     return assignment_obj
 
 
-def delete_assignment(assignment_id: int, user_id: int, db: Session) -> Dict[str, str]:
+async def delete_assignment(
+    assignment_id: int, user_id: int, db: AsyncSession
+) -> Dict[str, str]:
 
-    stmt = select(TeacherAssignment).where(
-        TeacherAssignment.id == assignment_id, TeacherAssignment.user_id == user_id
+    stmt = await db.execute(
+        select(TeacherAssignment)
+        .where(
+            TeacherAssignment.id == assignment_id, TeacherAssignment.user_id == user_id
+        )
+        .options(joinedload(TeacherAssignment.timetable))
     )
-    assignment = db.scalars(stmt).one_or_none()
+    assignment = stmt.scalar_one_or_none()
 
     if assignment is None:
         raise NotFound("Subject not found!")
@@ -159,8 +207,8 @@ def delete_assignment(assignment_id: int, user_id: int, db: Session) -> Dict[str
     if assignment.timetable.status == TimeTableStatus.Processing:
         raise Conflict("The timetable is being processed! wait till completion")
 
-    db.delete(assignment)
+    await db.delete(assignment)
 
-    db.commit()
+    await db.commit()
 
     return {"message": f"Assignment with id {assignment_id} deleted successfully!"}

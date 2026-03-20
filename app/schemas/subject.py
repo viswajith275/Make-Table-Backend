@@ -51,10 +51,10 @@ class SubjectCreate(BaseModel):
     @model_validator(mode="after")
     def validation(self) -> Self:
 
-        if self.isLab == True and (self.lab_classes is None or not self.lab_classes):
+        if self.isLab and (self.lab_classes is None or not self.lab_classes):
             raise ValueError("should choose atleast 1 lab class for a lab subject!")
 
-        if self.isLab == False and self.lab_classes is not None:
+        if not self.isLab and self.lab_classes is not None:
             raise ValueError("Cannot assign lab classes to a non lab subject!")
 
         if self.min_classes_day is not None and self.max_classes_day is not None:

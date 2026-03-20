@@ -1,7 +1,8 @@
 from typing import List
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.core.exceptions import BadRequest, NotFound
 from app.models.class_ import Class
@@ -10,12 +11,23 @@ from app.models.teacher import Teacher
 from app.models.timetable_entry import TimeTableEntry
 
 
-def fetch_class_entries(
-    class_id: int, user_id: int, db: Session
+async def fetch_class_entries(
+    class_id: int, user_id: int, db: AsyncSession
 ) -> List[TimeTableEntry]:
 
-    stmt = select(Class).where(Class.id == class_id, Class.user_id == user_id)
-    class_ = db.scalars(stmt).one_or_none()
+    stmt = await db.execute(
+        select(Class)
+        .where(Class.id == class_id, Class.user_id == user_id)
+        .options(
+            joinedload(Class.timetable),
+            selectinload(Class.entries).options(
+                joinedload(TimeTableEntry.class_),
+                joinedload(TimeTableEntry.teacher),
+                joinedload(TimeTableEntry.subject),
+            ),
+        )
+    )
+    class_ = stmt.scalar_one_or_none()
 
     if class_ is None:
         raise NotFound("Class not found!")
@@ -29,12 +41,23 @@ def fetch_class_entries(
     return class_.entries
 
 
-def fetch_teacher_entries(
-    teacher_id: int, user_id: int, db: Session
+async def fetch_teacher_entries(
+    teacher_id: int, user_id: int, db: AsyncSession
 ) -> List[TimeTableEntry]:
 
-    stmt = select(Teacher).where(Teacher.id == teacher_id, Teacher.user_id == user_id)
-    teacher = db.scalars(stmt).one_or_none()
+    stmt = await db.execute(
+        select(Teacher)
+        .where(Teacher.id == teacher_id, Teacher.user_id == user_id)
+        .options(
+            joinedload(Teacher.timetable),
+            selectinload(Teacher.entries).options(
+                joinedload(TimeTableEntry.class_),
+                joinedload(TimeTableEntry.teacher),
+                joinedload(TimeTableEntry.subject),
+            ),
+        )
+    )
+    teacher = stmt.scalar_one_or_none()
 
     if teacher is None:
         raise NotFound("Class not found!")

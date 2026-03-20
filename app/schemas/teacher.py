@@ -54,6 +54,3 @@ class TeacherCreate(BaseModel):
 
 class TeacherUpdate(TeacherCreate):
     name: Optional[str] = None
-    max_classes_day: Optional[int] = None
-    max_classes_week: Optional[int] = None
-    max_classes_consecutive: Optional[int] = None

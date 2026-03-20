@@ -1,24 +1,27 @@
 import secrets
 from datetime import datetime, timedelta
-from typing import Annotated, Generator
+from typing import Annotated, AsyncGenerator
 
 import jwt
 from fastapi import Depends, HTTPException, Request, status
-from sqlalchemy import delete, select
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.db.session import SessionLocal
+from app.db.session import AsyncSessionLocal
 from app.models.token import UserToken
 from app.models.user import User
 
 
-def get_db() -> Generator:
-    try:
-        db = SessionLocal()
-        yield db
-    finally:
-        db.close()
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        except Exception as e:
+            await session.rollback()
+            raise e
+        finally:
+            await session.close()
 
 
 # Fromating the token
@@ -39,7 +42,8 @@ async def get_token_from_cookie(request: Request) -> str:
 
 # decoding and verifying the jwt token
 async def get_current_user(
-    token: Annotated[str, Depends(get_token_from_cookie)], db: Session = Depends(get_db)
+    token: Annotated[str, Depends(get_token_from_cookie)],
+    db: AsyncSession = Depends(get_db),
 ) -> User | None:
 
     try:
@@ -54,13 +58,14 @@ async def get_current_user(
                 detail="Token Invalid or expired",
             )
 
-        stmt = select(User).where(User.id == user_id)
+        stmt = await db.execute(select(User).where(User.id == user_id))
 
-        return db.scalars(stmt).first()
+        return stmt.scalar_one_or_none()
 
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token Invalid or expired"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Token Invalid or expired: {e}",
         )
 
 
@@ -81,7 +86,7 @@ async def get_current_active_user(
     return current_user
 
 
-def validate_refresh_token(refresh_token: str, db: Session) -> int:
+async def validate_refresh_token(refresh_token: str, db: AsyncSession) -> int:
 
     payload = jwt.decode(
         refresh_token, settings.secret_key, algorithms=[settings.algorithm]
@@ -103,11 +108,11 @@ def validate_refresh_token(refresh_token: str, db: Session) -> int:
         )
 
     token_id = int(payload.get("jti"))  # type: ignore
-    stmt = select(UserToken).where(
-        UserToken.id == token_id, UserToken.user_id == user_id
+    stmt = await db.execute(
+        select(UserToken).where(UserToken.id == token_id, UserToken.user_id == user_id)
     )
 
-    token = db.scalars(stmt).first()
+    token = stmt.scalar_one_or_none()
 
     if not token or token.refresh_key != secret:
         # token may be stolen
@@ -118,7 +123,7 @@ def validate_refresh_token(refresh_token: str, db: Session) -> int:
     return user_id
 
 
-def delete_refresh_token(refresh_token: str | None, db: Session) -> None:
+async def delete_refresh_token(refresh_token: str | None, db: AsyncSession) -> None:
     if refresh_token:
         payload = jwt.decode(
             refresh_token, settings.secret_key, algorithms=[settings.algorithm]
@@ -126,13 +131,15 @@ def delete_refresh_token(refresh_token: str | None, db: Session) -> None:
 
         token_id = int(payload.get("jti"))  # type: ignore
 
-        stmt = delete(UserToken).where(UserToken.id == token_id)
+        stmt = await db.execute(select(UserToken).where(UserToken.id == token_id))
 
-        db.execute(stmt)
-        db.commit()
+        token = stmt.scalar_one_or_none()
+        if token is not None:
+            await db.delete(stmt)
+            await db.commit()
 
 
-def create_refresh_token(db: Session, user_id: int) -> UserToken:
+async def create_refresh_token(db: AsyncSession, user_id: int) -> UserToken:
 
     session_secret = secrets.token_urlsafe(32)
     expires_at = datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days)
@@ -142,7 +149,7 @@ def create_refresh_token(db: Session, user_id: int) -> UserToken:
     )
 
     db.add(token)
-    db.commit()
-    db.refresh(token)
+    await db.commit()
+    await db.refresh(token)
 
     return token

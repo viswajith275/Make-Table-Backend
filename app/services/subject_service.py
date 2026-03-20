@@ -1,7 +1,8 @@
 from typing import Dict, List
 
-from sqlalchemy import select, update
-from sqlalchemy.orm import Session
+from sqlalchemy import exists, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.core.exceptions import BadRequest, Conflict, NotFound
 from app.models.class_ import Class
@@ -11,14 +12,16 @@ from app.models.timetable import TimeTable
 from app.schemas.subject import SubjectCreate, SubjectUpdate
 
 
-def create_subject(
-    timetable_id: int, user_id: int, subject_request: SubjectCreate, db: Session
+async def create_subject(
+    timetable_id: int, user_id: int, subject_request: SubjectCreate, db: AsyncSession
 ) -> Subject:
 
-    stmt = select(TimeTable).where(
-        TimeTable.id == timetable_id, TimeTable.user_id == user_id
+    stmt = await db.execute(
+        select(TimeTable).where(
+            TimeTable.id == timetable_id, TimeTable.user_id == user_id
+        )
     )
-    timetable = db.scalars(stmt).first()
+    timetable = stmt.scalar_one_or_none()
 
     if timetable is None:
         raise NotFound(message="TimeTable not found!")
@@ -26,10 +29,15 @@ def create_subject(
     if timetable.status == TimeTableStatus.Processing:
         raise Conflict("The timetable is being processed! wait till completion")
 
-    stmt = select(Subject).where(
-        Subject.name == subject_request.name, Subject.timetable_id == timetable.id
+    stmt = await db.execute(
+        select(
+            exists().where(
+                Subject.name == subject_request.name,
+                Subject.timetable_id == timetable.id,
+            )
+        )
     )
-    existing = db.scalars(stmt).first()
+    existing = stmt.scalar()
 
     if existing:
         raise Conflict("This subject already exists!")
@@ -49,40 +57,54 @@ def create_subject(
         )
 
         db.add(subject_obj)
-        db.flush()
-        db.refresh(subject_obj)
+        await db.flush()
+        await db.refresh(subject_obj)
+
+        stmt = await db.execute(
+            select(Subject)
+            .where(Subject.id == subject_obj.id)
+            .options(selectinload(Subject.lab_classes))
+        )
+        subject_obj = stmt.scalar_one_or_none()
+
+        if subject_obj is None:
+            raise NotFound("Error!")
 
         if subject_request.isLab and subject_request.lab_classes is not None:
             for id in subject_request.lab_classes:
-                stmt = select(Class).where(
-                    Class.id == id,
-                    Class.timetable_id == timetable.id,
-                    Class.isLab == True,
+                stmt = await db.execute(
+                    select(Class).where(
+                        Class.id == id,
+                        Class.timetable_id == timetable.id,
+                        Class.isLab,
+                    )
                 )
-                lab_class = db.scalars(stmt).first()
+                lab_class = stmt.scalar_one_or_none()
 
                 if lab_class is None:
                     raise NotFound("Lab class not found!")
 
                 subject_obj.lab_classes.append(lab_class)
 
-        db.commit()
+        await db.commit()
 
-    except:
-        db.rollback()
-        raise NotFound("Lab class not found!")
+    except Exception as e:
+        await db.rollback()
+        raise e
 
     return subject_obj
 
 
-def fetch_timetable_subjects(
-    timetable_id: int, user_id: int, db: Session
+async def fetch_timetable_subjects(
+    timetable_id: int, user_id: int, db: AsyncSession
 ) -> List[Subject]:
 
-    stmt = select(TimeTable).where(
-        TimeTable.id == timetable_id, TimeTable.user_id == user_id
+    stmt = await db.execute(
+        select(TimeTable)
+        .where(TimeTable.id == timetable_id, TimeTable.user_id == user_id)
+        .options(selectinload(TimeTable.subjects))
     )
-    timetable = db.scalars(stmt).first()
+    timetable = stmt.scalar_one_or_none()
 
     if timetable is None or not timetable.subjects:
         raise NotFound("No subjects found!")
@@ -90,10 +112,12 @@ def fetch_timetable_subjects(
     return timetable.subjects
 
 
-def fetch_subject(user_id: int, subject_id: int, db: Session) -> Subject:
+async def fetch_subject(user_id: int, subject_id: int, db: AsyncSession) -> Subject:
 
-    stmt = select(Subject).where(Subject.id == subject_id, Subject.user_id == user_id)
-    subject_obj = db.scalars(stmt).first()
+    stmt = await db.execute(
+        select(Subject).where(Subject.id == subject_id, Subject.user_id == user_id)
+    )
+    subject_obj = stmt.scalar_one_or_none()
 
     if subject_obj is None:
         raise NotFound("Subject not found!")
@@ -101,12 +125,12 @@ def fetch_subject(user_id: int, subject_id: int, db: Session) -> Subject:
     return subject_obj
 
 
-def update_subject(
+async def update_subject(
     timetable_id: int,
     user_id: int,
     subject_id: int,
     subject_patch: SubjectUpdate,
-    db: Session,
+    db: AsyncSession,
 ) -> Subject:
 
     patch_data = subject_patch.model_dump(exclude_unset=True)
@@ -116,20 +140,26 @@ def update_subject(
 
     subject_name = patch_data.get("name")
     if subject_name is not None:
-        stmt = select(Subject).where(
-            Subject.name == subject_name,
-            Subject.timetable_id == timetable_id,
-            Subject.user_id == user_id,
+        stmt = await db.execute(
+            select(
+                exists().where(
+                    Subject.name == subject_name,
+                    Subject.timetable_id == timetable_id,
+                    Subject.user_id == user_id,
+                )
+            )
         )
-        existing = db.scalars(stmt).first()
+        existing = stmt.scalar()
 
         if existing:
             raise Conflict("This Subject already exists!")
 
-    stmt = select(TimeTable).where(
-        TimeTable.id == timetable_id, TimeTable.user_id == user_id
+    stmt = await db.execute(
+        select(TimeTable).where(
+            TimeTable.id == timetable_id, TimeTable.user_id == user_id
+        )
     )
-    timetable = db.scalars(stmt).first()
+    timetable = stmt.scalar_one_or_none()
 
     if timetable is not None and timetable.status == TimeTableStatus.Processing:
         raise Conflict("The timetable is being processed! wait till completion")
@@ -137,32 +167,38 @@ def update_subject(
     lab_classes = patch_data.pop("lab_classes", None)
 
     if patch_data:
-        stmt = (
-            update(Subject)
-            .where(Subject.id == subject_id, Subject.user_id == user_id)
-            .values(**patch_data)
-            .returning(Subject)
+        stmt = await db.execute(
+            (
+                update(Subject)
+                .where(Subject.id == subject_id, Subject.user_id == user_id)
+                .values(**patch_data)
+                .returning(Subject)
+            )
         )
-        subject_obj = db.execute(stmt).scalar_one_or_none()
+        subject_obj = stmt.scalar_one_or_none()
 
     else:
-        stmt = select(Subject).where(
-            Subject.id == subject_id, Subject.user_id == user_id
+        stmt = await db.execute(
+            select(Subject)
+            .where(Subject.id == subject_id, Subject.user_id == user_id)
+            .options(selectinload(Subject.lab_classes))
         )
-        subject_obj = db.scalars(stmt).first()
+        subject_obj = stmt.scalar_one_or_none()
 
-    if not subject_obj:
+    if subject_obj is None:
         raise NotFound("Subject not found!")
 
     try:
         if lab_classes is not None and subject_obj.isLab:
             for id in lab_classes:
-                stmt = select(Class).where(
-                    Class.id == id,
-                    Class.timetable_id == timetable_id,
-                    Class.isLab == True,
+                stmt = await db.execute(
+                    select(Class).where(
+                        Class.id == id,
+                        Class.timetable_id == timetable_id,
+                        Class.isLab,
+                    )
                 )
-                lab_class = db.scalars(stmt).first()
+                lab_class = stmt.scalar_one_or_none()
 
                 if lab_class is None:
                     raise NotFound("Lab class not found!")
@@ -170,19 +206,26 @@ def update_subject(
                 if lab_class not in subject_obj.lab_classes:
                     subject_obj.lab_classes.append(lab_class)
 
-        db.commit()
+        await db.commit()
 
-    except:
-        db.rollback()
-        raise NotFound("Lab class not found!")
+    except Exception as e:
+        await db.rollback()
+
+        raise e
 
     return subject_obj
 
 
-def delete_subject(user_id: int, subject_id: int, db: Session) -> Dict[str, str]:
+async def delete_subject(
+    user_id: int, subject_id: int, db: AsyncSession
+) -> Dict[str, str]:
 
-    stmt = select(Subject).where(Subject.id == subject_id, Subject.user_id == user_id)
-    subject = db.scalars(stmt).one_or_none()
+    stmt = await db.execute(
+        select(Subject)
+        .where(Subject.id == subject_id, Subject.user_id == user_id)
+        .options(joinedload(Subject.timetable))
+    )
+    subject = stmt.scalar_one_or_none()
 
     if subject is None:
         raise NotFound("Subject not found!")
@@ -190,8 +233,8 @@ def delete_subject(user_id: int, subject_id: int, db: Session) -> Dict[str, str]
     if subject.timetable.status == TimeTableStatus.Processing:
         raise Conflict("The timetable is being processed! wait till completion")
 
-    db.delete(subject)
+    await db.delete(subject)
 
-    db.commit()
+    await db.commit()
 
     return {"message": f"Subject with id {subject_id} deleted successfully!"}

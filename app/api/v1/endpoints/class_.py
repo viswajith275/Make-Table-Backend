@@ -1,7 +1,7 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
 from app.models.user import User
@@ -14,28 +14,28 @@ router = APIRouter()
 @router.get(
     "/timetables/{timetable_id}/classes", response_model=List[class_.ClassResponse]
 )
-def fetch_timetable_classes(
+async def fetch_timetable_classes(
     request: Request,
     timetable_id: int,
     current_user: User = Depends(deps.get_current_active_user),
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
 ):
 
-    return class_service.fetch_timetable_classes(
+    return await class_service.fetch_timetable_classes(
         timetable_id=timetable_id, user_id=current_user.id, db=db
     )
 
 
 @router.post("/timetables/{timetable_id}/classes", response_model=class_.ClassResponse)
-def create_class(
+async def create_class(
     request: Request,
     timetable_id: int,
     class_request: class_.ClassCreate,
     current_user: User = Depends(deps.get_current_active_user),
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
 ):
 
-    return class_service.create_class(
+    return await class_service.create_class(
         class_request=class_request,
         user_id=current_user.id,
         timetable_id=timetable_id,
@@ -46,16 +46,16 @@ def create_class(
 @router.patch(
     "/timetables/{timetable_id}/classes/{id}", response_model=class_.ClassResponse
 )
-def update_class(
+async def update_class(
     timetable_id: int,
     id: int,
     request: Request,
     class_patch: class_.ClassUpdate,
     current_user: User = Depends(deps.get_current_active_user),
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
 ):
 
-    return class_service.update_class(
+    return await class_service.update_class(
         timetable_id=timetable_id,
         user_id=current_user.id,
         class_id=id,
@@ -65,11 +65,11 @@ def update_class(
 
 
 @router.delete("/classes/{id}")
-def delete_class(
+async def delete_class(
     id: int,
     request: Request,
     current_user: User = Depends(deps.get_current_active_user),
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
 ):
 
-    return class_service.delete_class(class_id=id, user_id=current_user.id, db=db)
+    return await class_service.delete_class(class_id=id, user_id=current_user.id, db=db)

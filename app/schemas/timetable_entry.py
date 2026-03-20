@@ -22,9 +22,14 @@ class TimeTableEntryBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class TimeTableEntryResponse(TimeTableEntryBase):
-    teacher: TeacherResponse
+class TeacherTimeTableEntryResponse(TimeTableEntryBase):
     class_: ClassResponse
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ClassTimeTableEntryResponse(TimeTableEntryBase):
+    teacher: TeacherResponse
 
     model_config = ConfigDict(from_attributes=True)
 

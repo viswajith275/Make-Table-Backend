@@ -1,11 +1,8 @@
-from typing import List
-
 from celery import Task
 from sqlalchemy import select
 
 from app.core.celery import celery_app
-from app.core.exceptions import BadRequest
-from app.db.session import SessionLocal
+from app.db.session import SyncSessionLocal
 from app.models.enums import TimeTableStatus
 from app.models.timetable import TimeTable
 from app.models.timetable_entry import TimeTableEntry
@@ -13,14 +10,20 @@ from app.schemas.generation import TimeTableCreationData
 from app.services.timetable_service.generator import TimeTableGenerator
 
 
-@celery_app.task(bind=True)
+@celery_app.task(
+    bind=True,
+    acks_late=True,
+    soft_time_limit=120,
+    time_limit=150,
+)
 def generate_timetable_task(
     self: Task, timetable_id: int, user_id: int, force_generation: bool
-) -> None:  # Add force generation later ##################
+) -> None:
+    # Add force generation later ## update added  new todo improve
 
     # Add force generation as optional for now just allow it
 
-    with SessionLocal() as db:
+    with SyncSessionLocal() as db:
         try:
             stmt = select(TimeTable).where(
                 TimeTable.id == timetable_id, TimeTable.user_id == user_id
@@ -29,6 +32,9 @@ def generate_timetable_task(
 
             if timetable is None:
                 return
+
+            timetable.status = TimeTableStatus.Processing
+            db.commit()
 
             timetable_data = TimeTableCreationData.model_validate(timetable)
 
@@ -49,21 +55,22 @@ def generate_timetable_task(
 
             if violations_data and not force_generation:
                 timetable.violations = violations_data
+                timetable.status = TimeTableStatus.Failed
 
                 db.commit()
 
-                raise BadRequest(f"Conflics during creation: {violations_data}")
+                return
 
             if not timetable_entries:
-                raise BadRequest("No possible TimeTable!")
+                timetable.status = TimeTableStatus.Failed
+                db.commit()
+                return
 
             for prev_entry in timetable.entries:
                 db.delete(prev_entry)
 
-            all_entries: List[TimeTableEntry] = []
-
-            for entry in timetable_entries:
-                new_entry = TimeTableEntry(
+            db.add_all(
+                TimeTableEntry(
                     day=entry.day,
                     slot=entry.slot,
                     user_id=user_id,
@@ -74,10 +81,8 @@ def generate_timetable_task(
                     lab_id=entry.lab_id,
                     role=entry.role,
                 )
-
-                all_entries.append(new_entry)
-
-            db.add_all(all_entries)
+                for entry in timetable_entries
+            )
 
             timetable.violations = violations_data
 
