@@ -1,7 +1,7 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
 from app.models.user import User
@@ -19,7 +19,7 @@ async def get_timetable_entries_class(
     request: Request,
     class_id: int,
     current_user: User = Depends(deps.get_current_active_user),
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
 ):
 
     return await timetable_entry_service.fetch_class_entries(
@@ -35,7 +35,7 @@ async def get_timetable_entries_teacher(
     request: Request,
     teacher_id: int,
     current_user: User = Depends(deps.get_current_active_user),
-    db: Session = Depends(deps.get_db),
+    db: AsyncSession = Depends(deps.get_db),
 ):
 
     return await timetable_entry_service.fetch_teacher_entries(

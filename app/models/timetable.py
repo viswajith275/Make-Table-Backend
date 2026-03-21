@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
-from app.models.enums import TimeTableStatus, WeekDayEnum
+from app.models.enums import TimeTableStatus, TimeTableViewStatus, WeekDayEnum
 
 
 class TimeTable(Base):
@@ -20,6 +20,9 @@ class TimeTable(Base):
     )  # Add type of timetable for diffrent timetables
     days: Mapped[List[WeekDayEnum]] = mapped_column(ARRAY(Enum(WeekDayEnum)))
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow())
+    view_status: Mapped[TimeTableViewStatus] = mapped_column(
+        default=TimeTableViewStatus.Private
+    )
 
     status: Mapped[TimeTableStatus] = mapped_column(
         Enum(TimeTableStatus), default=TimeTableStatus.Active

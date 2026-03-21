@@ -1,8 +1,8 @@
-"""empty message
+"""Initial migration
 
-Revision ID: 440f094336ef
+Revision ID: 925261a550da
 Revises: 
-Create Date: 2026-03-19 18:30:34.126610
+Create Date: 2026-03-21 12:39:47.540525
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '440f094336ef'
+revision: str = '925261a550da'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -36,6 +36,7 @@ def upgrade() -> None:
     sa.Column('slots', sa.Integer(), nullable=False),
     sa.Column('days', sa.ARRAY(sa.Enum('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', name='weekdayenum')), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('view_status', sa.Enum('Public', 'Private', name='timetableviewstatus'), nullable=False),
     sa.Column('status', sa.Enum('Active', 'Failed', 'Processing', name='timetablestatus'), nullable=False),
     sa.Column('violations', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=False),

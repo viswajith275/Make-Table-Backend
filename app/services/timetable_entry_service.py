@@ -6,7 +6,7 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from app.core.exceptions import BadRequest, NotFound
 from app.models.class_ import Class
-from app.models.enums import TimeTableStatus
+from app.models.enums import TimeTableStatus, TimeTableViewStatus
 from app.models.teacher import Teacher
 from app.models.timetable_entry import TimeTableEntry
 
@@ -17,7 +17,7 @@ async def fetch_class_entries(
 
     stmt = await db.execute(
         select(Class)
-        .where(Class.id == class_id, Class.user_id == user_id)
+        .where(Class.id == class_id)
         .options(
             joinedload(Class.timetable),
             selectinload(Class.entries).options(
@@ -31,6 +31,12 @@ async def fetch_class_entries(
 
     if class_ is None:
         raise NotFound("Class not found!")
+
+    if (
+        class_.timetable.view_status == TimeTableViewStatus.Private
+        and class_.user_id != user_id
+    ):
+        raise NotFound("Class not found")
 
     if class_.timetable.status == TimeTableStatus.Processing:
         raise BadRequest("The timetable entries are being updated!")
@@ -47,7 +53,7 @@ async def fetch_teacher_entries(
 
     stmt = await db.execute(
         select(Teacher)
-        .where(Teacher.id == teacher_id, Teacher.user_id == user_id)
+        .where(Teacher.id == teacher_id)
         .options(
             joinedload(Teacher.timetable),
             selectinload(Teacher.entries).options(
@@ -60,7 +66,13 @@ async def fetch_teacher_entries(
     teacher = stmt.scalar_one_or_none()
 
     if teacher is None:
-        raise NotFound("Class not found!")
+        raise NotFound("Teacher not found!")
+
+    if (
+        teacher.timetable.view_status == TimeTableViewStatus.Private
+        and teacher.user_id != user_id
+    ):
+        raise NotFound("Teacher not found")
 
     if teacher.timetable.status == TimeTableStatus.Processing:
         raise BadRequest("The timetable entries are being updated!")

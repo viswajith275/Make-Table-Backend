@@ -2,7 +2,7 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from app.models.enums import TimeTableStatus, WeekDayEnum
+from app.models.enums import TimeTableStatus, TimeTableViewStatus, WeekDayEnum
 
 
 class TimeTableResponse(BaseModel):
@@ -11,6 +11,7 @@ class TimeTableResponse(BaseModel):
     slots: int
     days: List[WeekDayEnum]
     status: TimeTableStatus
+    view_status: TimeTableViewStatus
     violations: Optional[List[Dict]] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -20,6 +21,7 @@ class TimeTableCreate(BaseModel):
     name: str
     slots: int
     days: List[WeekDayEnum]
+    view_status: TimeTableViewStatus = TimeTableViewStatus.Private
 
     @field_validator("name")
     @classmethod
@@ -53,3 +55,4 @@ class TimeTableUpdate(TimeTableCreate):
     name: Optional[str] = None
     slots: Optional[int] = None
     days: Optional[List[WeekDayEnum]] = None
+    view_status: Optional[TimeTableViewStatus] = None
