@@ -135,7 +135,7 @@ async def delete_refresh_token(refresh_token: str | None, db: AsyncSession) -> N
 
         token = stmt.scalar_one_or_none()
         if token is not None:
-            await db.delete(stmt)
+            await db.delete(token)
             await db.commit()
 
 
