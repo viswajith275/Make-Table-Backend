@@ -68,8 +68,8 @@ async def fetch_timetable_teachers(
     )
     timetable = stmt.scalar_one_or_none()
 
-    if timetable is None or not timetable.teachers:
-        raise NotFound("No teachers found!")
+    if timetable is None:
+        raise NotFound("TimeTable not found!")
 
     return timetable.teachers
 

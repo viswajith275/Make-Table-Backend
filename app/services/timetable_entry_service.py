@@ -77,7 +77,4 @@ async def fetch_teacher_entries(
     if teacher.timetable.status == TimeTableStatus.Processing:
         raise BadRequest("The timetable entries are being updated!")
 
-    if not teacher.entries:
-        raise NotFound("No entries found!")
-
     return teacher.entries

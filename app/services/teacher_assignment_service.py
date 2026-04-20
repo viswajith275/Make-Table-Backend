@@ -130,8 +130,8 @@ async def fetch_teacher_assignments(
     )
     teacher = stmt.scalar_one_or_none()
 
-    if teacher is None or not teacher.assignments:
-        raise NotFound("No assignments found!")
+    if teacher is None:
+        raise NotFound("TimeTable not found!")
 
     return teacher.assignments
 

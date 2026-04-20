@@ -67,8 +67,8 @@ async def fetch_timetable_classes(
     )
     timetable = stmt.scalar_one_or_none()
 
-    if timetable is None or not timetable.classes:
-        raise NotFound("No classes found!")
+    if timetable is None:
+        raise NotFound("TimeTable not found!")
 
     return timetable.classes
 

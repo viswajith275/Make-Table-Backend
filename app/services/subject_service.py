@@ -106,8 +106,8 @@ async def fetch_timetable_subjects(
     )
     timetable = stmt.scalar_one_or_none()
 
-    if timetable is None or not timetable.subjects:
-        raise NotFound("No subjects found!")
+    if timetable is None:
+        raise NotFound("TimeTable not found!")
 
     return timetable.subjects
 
