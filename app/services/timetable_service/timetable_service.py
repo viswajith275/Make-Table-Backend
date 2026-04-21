@@ -34,7 +34,7 @@ async def fetch_all_timetables(user_id: int, db: AsyncSession) -> List[TimeTable
     timetable_objs = stmt.scalars().all()
 
     if not timetable_objs:
-        raise NotFound("No timetables found!")
+        return []
 
     return timetable_objs  # type: ignore
 
