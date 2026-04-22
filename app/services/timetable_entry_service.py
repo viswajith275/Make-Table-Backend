@@ -1,5 +1,3 @@
-from typing import List
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
@@ -11,9 +9,7 @@ from app.models.teacher import Teacher
 from app.models.timetable_entry import TimeTableEntry
 
 
-async def fetch_class_entries(
-    class_id: int, user_id: int, db: AsyncSession
-) -> List[TimeTableEntry]:
+async def fetch_class_entries(class_id: int, user_id: int, db: AsyncSession) -> Class:
 
     stmt = await db.execute(
         select(Class)
@@ -41,15 +37,12 @@ async def fetch_class_entries(
     if class_.timetable.status == TimeTableStatus.Processing:
         raise BadRequest("The timetable entries are being updated!")
 
-    if not class_.entries:
-        raise NotFound("No entries found!")
-
-    return class_.entries
+    return class_
 
 
 async def fetch_teacher_entries(
     teacher_id: int, user_id: int, db: AsyncSession
-) -> List[TimeTableEntry]:
+) -> Teacher:
 
     stmt = await db.execute(
         select(Teacher)
@@ -77,4 +70,4 @@ async def fetch_teacher_entries(
     if teacher.timetable.status == TimeTableStatus.Processing:
         raise BadRequest("The timetable entries are being updated!")
 
-    return teacher.entries
+    return teacher

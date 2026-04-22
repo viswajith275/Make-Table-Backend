@@ -1,4 +1,5 @@
-from typing import Optional
+from calendar import Calendar
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -8,6 +9,7 @@ from app.schemas.subject import SubjectResponse
 
 # Add create update and teacher class subject formating .....
 from app.schemas.teacher import TeacherResponse
+from app.schemas.timetable import TimeTableResponse
 
 
 # Could use a custom made teacher class subject responses schemas
@@ -32,6 +34,16 @@ class ClassTimeTableEntryResponse(TimeTableEntryBase):
     teacher: TeacherResponse
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ClassEntryResponse(BaseModel):
+    timetable: TimeTableResponse
+    entries: List[ClassTimeTableEntryResponse]
+
+
+class TeacherEntryResponse(BaseModel):
+    timetable: TimeTableResponse
+    entries: List[TeacherTimeTableEntryResponse]
 
 
 class TimeTableEntryCreate(
