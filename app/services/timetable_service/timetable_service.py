@@ -69,15 +69,18 @@ async def delete_timetable(
 ) -> Dict[str, str]:
 
     stmt = await db.execute(
-        delete(TimeTable)
-        .where(TimeTable.id == timetable_id, TimeTable.user_id == user_id)
-        .returning(TimeTable.id)
+        select(TimeTable).where(
+            TimeTable.id == timetable_id, TimeTable.user_id == user_id
+        )
     )
-    deleted_id = stmt.scalar_one_or_none()
+    timetable = result.scalar_one_or_none()
 
-    if deleted_id is None:
+    if timetable is None:
         raise NotFound("TimeTable not found!")
 
+    deleted_id = timetable.id
+
+    await db.delete(timetable)
     await db.commit()
 
     return {"message": f"timetable with id {deleted_id} deleted successfully!"}
