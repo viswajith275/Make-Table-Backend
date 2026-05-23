@@ -73,7 +73,7 @@ async def delete_timetable(
             TimeTable.id == timetable_id, TimeTable.user_id == user_id
         )
     )
-    timetable = result.scalar_one_or_none()
+    timetable = stmt.scalar_one_or_none()
 
     if timetable is None:
         raise NotFound("TimeTable not found!")
