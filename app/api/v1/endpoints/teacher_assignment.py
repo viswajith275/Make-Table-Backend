@@ -12,18 +12,18 @@ router = APIRouter()
 
 
 @router.get(
-    "/teachers/{teacher_id}/assignments",
+    "/assignments/{timetable_id}",
     response_model=List[teacher_assignment.TeacherAssignmentResponse],
 )
 async def fetch_teacher_assignemnts(
     request: Request,
-    teacher_id: int,
+    timetable_id: int,
     current_user: User = Depends(deps.get_current_active_user),
     db: AsyncSession = Depends(deps.get_db),
 ):
 
     return await teacher_assignment_service.fetch_teacher_assignments(
-        teacher_id=teacher_id, user_id=current_user.id, db=db
+        timetable_id=timetable_id, user_id=current_user.id, db=db
     )
 
 

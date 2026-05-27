@@ -8,14 +8,18 @@ from app.models.enums import Hardness, TeacherRole, WeekDayEnum
 
 class ClassDetail(BaseModel):
     class_name: str
-    room_name: str
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class SubjectDetail(BaseModel):
     name: str
-    hardness: Hardness
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TeacherDetail(BaseModel):
+    name: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -25,6 +29,7 @@ class TeacherAssignmentResponse(BaseModel):
     created_at: datetime
     class_: ClassDetail
     subject: SubjectDetail
+    teacher: TeacherDetail
     role: TeacherRole
     morning_class_days: Optional[List[WeekDayEnum]]
 

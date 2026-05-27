@@ -10,6 +10,7 @@ from app.models.class_ import Class
 from app.models.enums import TeacherRole, TimeTableStatus
 from app.models.subject import Subject
 from app.models.teacher import Teacher
+from app.models.timetable import TimeTable
 from app.models.teacher_assignment import TeacherAssignment
 from app.schemas.teacher_assignment import (
     TeacherAssignmentCreate,
@@ -115,25 +116,26 @@ async def create_assignment(
 
 
 async def fetch_teacher_assignments(
-    teacher_id: int, user_id: int, db: AsyncSession
+    timetable_id: int, user_id: int, db: AsyncSession
 ) -> List[TeacherAssignment]:
 
     stmt = await db.execute(
-        select(Teacher)
-        .where(Teacher.id == teacher_id, Teacher.user_id == user_id)
+        select(TimeTable)
+        .where(Timetable.id == timetable_id, TimeTable.user_id == user_id)
         .options(
-            selectinload(Teacher.assignments).options(
+            selectinload(TimeTable.assignments).options(
                 joinedload(TeacherAssignment.class_),
                 joinedload(TeacherAssignment.subject),
+                joinedload(TeacherAssignment.teacher),
             )
         )
     )
-    teacher = stmt.scalar_one_or_none()
+    timetable = stmt.scalar_one_or_none()
 
-    if teacher is None:
+    if timetable is None:
         raise NotFound("TimeTable not found!")
 
-    return teacher.assignments
+    return timetable.assignments
 
 
 async def update_assignment(
