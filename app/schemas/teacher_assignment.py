@@ -1,9 +1,11 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, Field, AliasPath
 
 from app.models.enums import Hardness, TeacherRole, WeekDayEnum
+
+##### Reuse if more data is needed ########
 
 
 class ClassDetail(BaseModel):
@@ -24,12 +26,15 @@ class TeacherDetail(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+################################################################
+
+
 class TeacherAssignmentResponse(BaseModel):
     id: int
     created_at: datetime
-    class_: ClassDetail
-    subject: SubjectDetail
-    teacher: TeacherDetail
+    class_name: str = Field(validation_alias=AliasPath("class_", "class_name"))
+    subject_name: str = Field(validation_alias=AliasPath("subject", "name"))
+    teacher_name: str = Field(validation_alias=AliasPath("teacher", "name"))
     role: TeacherRole
     morning_class_days: Optional[List[WeekDayEnum]]
 
