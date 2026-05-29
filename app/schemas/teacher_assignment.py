@@ -9,18 +9,21 @@ from app.models.enums import Hardness, TeacherRole, WeekDayEnum
 
 
 class ClassDetail(BaseModel):
+    id: int
     class_name: str
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class SubjectDetail(BaseModel):
+    id: int
     name: str
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class TeacherDetail(BaseModel):
+    id: int
     name: str
 
     model_config = ConfigDict(from_attributes=True)
@@ -32,9 +35,9 @@ class TeacherDetail(BaseModel):
 class TeacherAssignmentResponse(BaseModel):
     id: int
     created_at: datetime
-    class_name: str = Field(validation_alias=AliasPath("class_", "class_name"))
-    subject_name: str = Field(validation_alias=AliasPath("subject", "name"))
-    teacher_name: str = Field(validation_alias=AliasPath("teacher", "name"))
+    class_: ClassDetail
+    subject: SubjectDetail
+    teacher: TeacherDetail
     role: TeacherRole
     morning_class_days: Optional[List[WeekDayEnum]]
 

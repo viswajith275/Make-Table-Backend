@@ -121,7 +121,7 @@ async def fetch_teacher_assignments(
 
     stmt = await db.execute(
         select(TimeTable)
-        .where(Timetable.id == timetable_id, TimeTable.user_id == user_id)
+        .where(TimeTable.id == timetable_id, TimeTable.user_id == user_id)
         .options(
             selectinload(TimeTable.assignments).options(
                 joinedload(TeacherAssignment.class_),
