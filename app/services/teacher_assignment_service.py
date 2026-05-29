@@ -150,18 +150,17 @@ async def update_assignment(
     if not patch_data:
         raise BadRequest("Nothing to update!")
 
-    role = patch_data.get("role")
-
     stmt = await db.execute(
-        update(TeacherAssignment)
+        select(TeacherAssignment)
         .where(
             TeacherAssignment.id == assignment_id, TeacherAssignment.user_id == user_id
         )
         .options(
-            joinedload(TeacherAssignment.class_), joinedload(TeacherAssignment.subject)
+            joinedload(TeacherAssignment.teacher),
+            joinedload(TeacherAssignment.class_),
+            joinedload(TeacherAssignment.subject),
+            joinedload(TeacherAssignment.timetable),
         )
-        .values(**patch_data)
-        .returning(TeacherAssignment)
     )
     assignment_obj = stmt.scalar_one_or_none()
 
@@ -171,12 +170,15 @@ async def update_assignment(
     if assignment_obj.timetable.status == TimeTableStatus.Processing:
         raise Conflict("The timetable is being processed! wait till completion")
 
+    role = patch_data.get("role")
+
     if role == TeacherRole.Class_Teacher:
         stmt = await db.execute(
             select(
                 exists().where(
                     TeacherAssignment.teacher_id == assignment_obj.teacher_id,
                     TeacherAssignment.role == TeacherRole.Class_Teacher,
+                    TeacherAssignment.id != assignment_obj.id,
                 )
             )
         )
@@ -185,7 +187,12 @@ async def update_assignment(
         if already_class_teacher:
             raise Conflict("Teacher cannot be class teacher of morethan one class!")
 
+    for key, value in patch_data.items():
+        setattr(assignment_obj, key, value)
+
     await db.commit()
+
+    await db.refresh(assignment_obj)
 
     return assignment_obj
 
