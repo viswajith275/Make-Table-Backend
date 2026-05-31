@@ -1,8 +1,8 @@
-"""Initial migration
+"""Initial migrations
 
-Revision ID: 925261a550da
+Revision ID: c2b7af64f53b
 Revises: 
-Create Date: 2026-03-21 12:39:47.540525
+Create Date: 2026-05-31 15:51:28.368598
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '925261a550da'
+revision: str = 'c2b7af64f53b'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -76,6 +76,7 @@ def upgrade() -> None:
     sa.Column('max_classes_consecutive', sa.Integer(), nullable=True),
     sa.Column('isLab', sa.Boolean(), nullable=False),
     sa.Column('hardness', sa.Enum('Low', 'Med', 'High', name='hardness'), nullable=False),
+    sa.Column('rgb_code', sa.String(), nullable=False),
     sa.Column('timetable_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['timetable_id'], ['timetables.id'], ),

@@ -52,6 +52,7 @@ async def create_subject(
             max_classes_consecutive=subject_request.max_classes_consecutive,
             isLab=subject_request.isLab,
             hardness=subject_request.hardness,
+            rgb_code=subject_request.rgb_code,
             timetable_id=timetable.id,
             user_id=user_id,
         )
@@ -99,23 +100,27 @@ async def fetch_timetable_subjects(
     timetable_id: int, user_id: int, db: AsyncSession
 ) -> List[Subject]:
 
-    stmt = await db.execute(
-        select(TimeTable)
-        .where(TimeTable.id == timetable_id, TimeTable.user_id == user_id)
-        .options(selectinload(TimeTable.subjects))
-    )
-    timetable = stmt.scalar_one_or_none()
+    # check first
 
-    if timetable is None:
+    stmt = await db.execute(
+        select(Subject).where(
+            Subject.timetable_id == timetable_id, Subject.user_id == user_id
+        )
+    )
+    subjects = stmt.scalars().all()
+
+    if subjects is None:
         raise NotFound("TimeTable not found!")
 
-    return timetable.subjects
+    return subjects
 
 
 async def fetch_subject(user_id: int, subject_id: int, db: AsyncSession) -> Subject:
 
     stmt = await db.execute(
-        select(Subject).where(Subject.id == subject_id, Subject.user_id == user_id)
+        select(Subject)
+        .where(Subject.id == subject_id, Subject.user_id == user_id)
+        .options(selectinload(Subject.lab_classes))
     )
     subject_obj = stmt.scalar_one_or_none()
 
@@ -166,27 +171,20 @@ async def update_subject(
 
     lab_classes = patch_data.pop("lab_classes", None)
 
-    if patch_data:
-        stmt = await db.execute(
-            (
-                update(Subject)
-                .where(Subject.id == subject_id, Subject.user_id == user_id)
-                .values(**patch_data)
-                .returning(Subject)
-            )
-        )
-        subject_obj = stmt.scalar_one_or_none()
+    stmt = await db.execute(
+        select(Subject)
+        .where(Subject.id == subject_id, Subject.user_id == user_id)
+        .options(selectinload(Subject.lab_classes))
+    )
 
-    else:
-        stmt = await db.execute(
-            select(Subject)
-            .where(Subject.id == subject_id, Subject.user_id == user_id)
-            .options(selectinload(Subject.lab_classes))
-        )
-        subject_obj = stmt.scalar_one_or_none()
+    subject_obj = stmt.scalar_one_or_none()
 
     if subject_obj is None:
         raise NotFound("Subject not found!")
+
+    if patch_data:
+        for key, value in patch_data.items():
+            setattr(subject_obj, key, value)
 
     try:
         if lab_classes is not None and subject_obj.isLab:

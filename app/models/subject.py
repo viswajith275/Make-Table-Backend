@@ -25,6 +25,7 @@ class Subject(Base):
     max_classes_consecutive: Mapped[Optional[int]] = mapped_column()
     isLab: Mapped[bool] = mapped_column(default=False)
     hardness: Mapped[Hardness] = mapped_column(Enum(Hardness), default=Hardness.Low)
+    rgb_code: Mapped[str] = mapped_column()
 
     timetable_id: Mapped[int] = mapped_column(ForeignKey("timetables.id"))
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))

@@ -114,15 +114,15 @@ async def update_class(
         raise Conflict("The timetable is being processed! wait till completion")
 
     stmt = await db.execute(
-        update(Class)
-        .where(Class.id == class_id, Class.user_id == user_id)
-        .values(**patch_data)
-        .returning(Class)
+        select(Class).where(Class.id == class_id, Class.user_id == user_id)
     )
     class_obj = stmt.scalar_one_or_none()
 
     if class_obj is None:
         raise NotFound("Class not found!")
+
+    for key, value in patch_data.items():
+        setattr(class_obj, key, value)
 
     await db.commit()
 

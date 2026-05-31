@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List, Optional, Self
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
-
+from pydantic_extra_types.color import Color
 from app.models.enums import Hardness
 from app.schemas.class_ import ClassResponse
 
@@ -13,6 +13,7 @@ class SubjectResponse(BaseModel):
     created_at: datetime
     isLab: bool
     hardness: Hardness
+    rgb_code: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -40,6 +41,7 @@ class SubjectCreate(BaseModel):
     isLab: bool = False
     lab_classes: Optional[List[int]] = None
     hardness: Hardness = Hardness.Low
+    rgb_code: Color
 
     @field_validator("name")
     @classmethod
@@ -47,6 +49,11 @@ class SubjectCreate(BaseModel):
         if v is not None and len(v) > 25:
             raise ValueError("length of subject name cannot be greater than 25!")
         return v
+
+    @field_validator("rgb_code")
+    @classmethod
+    def validate_rgb_code(cls, color: Color | None) -> Color | None:
+        return color.as_rgb()
 
     @model_validator(mode="after")
     def validation(self) -> Self:
@@ -103,3 +110,4 @@ class SubjectUpdate(SubjectCreate):
     name: Optional[str] = None
     isLab: Optional[bool] = None
     hardness: Optional[Hardness] = None
+    rgb_code: Optional[Color] = None

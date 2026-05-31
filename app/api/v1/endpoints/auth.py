@@ -8,7 +8,12 @@ from app.api import deps
 from app.core.config import settings
 from app.core.security import create_token
 from app.models.user import User
-from app.schemas.user import UserCreate, UsersResponse
+from app.schemas.user import (
+    UserCreate,
+    UsersResponse,
+    PasswordUpdationRequest,
+    UserUpdate,
+)
 from app.services import user_service
 
 router = APIRouter()
@@ -17,6 +22,30 @@ router = APIRouter()
 @router.get("/me", response_model=UsersResponse)
 async def read_user_me(current_user: User = Depends(deps.get_current_active_user)):
     return current_user
+
+
+@router.patch("/change-password")
+async def change_user_password(
+    request: Request,
+    password_patch: PasswordUpdationRequest,
+    current_user: User = Depends(deps.get_current_active_user),
+    db: AsyncSession = Depends(deps.get_db),
+):
+    return await user_service.update_user_password(
+        db=db, password_patch=password_patch, user_id=current_user.id
+    )
+
+
+@router.patch("/change-username", response_model=UsersResponse)
+async def change_username(
+    request: Request,
+    user_patch: UserUpdate,
+    current_user: User = Depends(deps.get_current_active_user),
+    db: AsyncSession = Depends(deps.get_db),
+):
+    return await user_service.update_username(
+        db=db, user_patch=user_patch, user_id=current_user.id
+    )
 
 
 @router.post(
