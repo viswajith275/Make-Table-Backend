@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
     redis_url: str = ""
+    google_client_key: str = ""
+    google_client_secret: str = ""
 
     @property
     def sync_database_url(self) -> str:

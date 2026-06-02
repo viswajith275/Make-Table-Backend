@@ -68,6 +68,9 @@ async def update_username(
     if user_obj is None:
         raise NotFound(message="User not found!")
 
+    if not verify_password(user_patch.password, user_obj.hashed_password):
+        raise BadRequest(message="Incorrect password!")
+
     patch_data = user_patch.model_dump(exclude_unset=True)
 
     if not patch_data:
@@ -102,6 +105,7 @@ async def update_user_password(
 
     if user_obj is None:
         raise NotFound(message="User not found")
+
     if not verify_password(password_patch.current_password, user_obj.hashed_password):
         raise BadRequest("Incorrect password!")
 

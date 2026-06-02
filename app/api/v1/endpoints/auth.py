@@ -16,12 +16,27 @@ from app.schemas.user import (
 )
 from app.services import user_service
 
+"""
+google_sso = GoogleSSO(
+    client_id=settings.google_client_key,
+    client_secret=settings.google_client_secret,
+    redirect_uri="http://localhost:8000/google/callback",  # change to actual endpoint in production
+    allow_insecure_http=True,  # Must be set to false in production
+)
+"""
 router = APIRouter()
 
 
 @router.get("/me", response_model=UsersResponse)
 async def read_user_me(current_user: User = Depends(deps.get_current_active_user)):
     return current_user
+
+
+"""
+@router.get("/google/login")
+async def google_login():
+    return await google_sso.get_login_redirect()
+"""
 
 
 @router.patch("/change-password")

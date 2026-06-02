@@ -55,7 +55,8 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    username: Optional[str] = None
+    username: str
+    password: str
 
     @field_validator("username")
     @classmethod
