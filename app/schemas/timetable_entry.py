@@ -9,10 +9,20 @@ from app.schemas.subject import SubjectResponse
 
 # Add create update and teacher class subject formating .....
 from app.schemas.teacher import TeacherResponse
-from app.schemas.timetable import TimeTableResponse
+from app.models.enums import TimeTableViewStatus, TimeTableStatus
 
 
 # Could use a custom made teacher class subject responses schemas
+class EntryTimeTableResponse(BaseModel):
+    name: str
+    slots: int
+    days: List[WeekDayEnum]
+    status: TimeTableStatus
+    view_status: TimeTableViewStatus
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class TimeTableEntryBase(BaseModel):
     id: int
     slot: int
@@ -37,14 +47,17 @@ class ClassTimeTableEntryResponse(TimeTableEntryBase):
 
 
 class ClassEntryResponse(BaseModel):
-    timetable: TimeTableResponse
+    class_name: str
+    room_name: str
+    timetable: EntryTimeTableResponse
     entries: List[ClassTimeTableEntryResponse]
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class TeacherEntryResponse(BaseModel):
-    timetable: TimeTableResponse
+    name: str
+    timetable: EntryTimeTableResponse
     entries: List[TeacherTimeTableEntryResponse]
 
     model_config = ConfigDict(from_attributes=True)

@@ -1,7 +1,14 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Self
 
-from pydantic import BaseModel, ConfigDict, field_validator, Field, AliasPath
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    field_validator,
+    Field,
+    AliasPath,
+    model_validator,
+)
 
 from app.models.enums import Hardness, TeacherRole, WeekDayEnum
 
@@ -53,12 +60,25 @@ class TeacherAssignmentCreate(BaseModel):
 
     @field_validator("morning_class_days")
     @classmethod
-    def validate_days(cls, v: List[WeekDayEnum] | None) -> List[WeekDayEnum] | None:
+    def validate_morning_class_days(
+        cls, v: List[WeekDayEnum] | None
+    ) -> List[WeekDayEnum] | None:
 
         if v is not None and len(v) != len(set(v)):
             raise ValueError("Days cannot contain duplicate values!")
 
         return v
+
+    @model_validator(mode="after")
+    def check_morning_classes_for_class_teachers_only(self) -> Self:
+        if (
+            self.morning_class_days is not None
+            and self.role != TeacherRole.Class_Teacher
+        ):
+            raise ValueError(
+                "Morning class days can only be assigned to Class Teachers."
+            )
+        return self
 
 
 class TeacherAssignmentUpdate(BaseModel):
@@ -67,9 +87,22 @@ class TeacherAssignmentUpdate(BaseModel):
 
     @field_validator("morning_class_days")
     @classmethod
-    def validate_days(cls, v: List[WeekDayEnum]) -> List[WeekDayEnum]:
+    def validate_morning_class_days(
+        cls, v: List[WeekDayEnum] | None
+    ) -> List[WeekDayEnum] | None:
 
-        if len(v) != len(set(v)):
+        if v is not None and len(v) != len(set(v)):
             raise ValueError("Days cannot contain duplicate values!")
 
         return v
+
+    @model_validator(mode="after")
+    def check_morning_classes_for_class_teachers_only(self) -> Self:
+        if (
+            self.morning_class_days is not None
+            and self.role != TeacherRole.Class_Teacher
+        ):
+            raise ValueError(
+                "Morning class days can only be assigned to Class Teachers."
+            )
+        return self
