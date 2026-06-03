@@ -40,10 +40,14 @@ class ClassEntryResponse(BaseModel):
     timetable: TimeTableResponse
     entries: List[ClassTimeTableEntryResponse]
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class TeacherEntryResponse(BaseModel):
     timetable: TimeTableResponse
     entries: List[TeacherTimeTableEntryResponse]
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TimeTableEntryCreate(

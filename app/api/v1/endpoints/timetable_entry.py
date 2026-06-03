@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.get(
     "/classes/{class_id}/entries",
-    response_model=List[timetable_entry.ClassEntryResponse],
+    response_model=timetable_entry.ClassEntryResponse,
 )
 async def get_timetable_entries_class(
     request: Request,
@@ -29,7 +29,7 @@ async def get_timetable_entries_class(
 
 @router.get(
     "/teacher/{teacher_id}/entries",
-    response_model=List[timetable_entry.TeacherEntryResponse],
+    response_model=timetable_entry.TeacherEntryResponse,
 )
 async def get_timetable_entries_teacher(
     request: Request,

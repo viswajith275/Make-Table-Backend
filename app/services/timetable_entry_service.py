@@ -53,6 +53,7 @@ async def fetch_teacher_entries(
                 joinedload(TimeTableEntry.class_),
                 joinedload(TimeTableEntry.teacher),
                 joinedload(TimeTableEntry.subject),
+                joinedload(TimeTableEntry.lab),
             ),
         )
     )
