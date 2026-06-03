@@ -20,6 +20,7 @@ async def fetch_class_entries(class_id: int, user_id: int, db: AsyncSession) -> 
                 joinedload(TimeTableEntry.class_),
                 joinedload(TimeTableEntry.teacher),
                 joinedload(TimeTableEntry.subject),
+                joinedload(TimeTableEntry.lab),
             ),
         )
     )
