@@ -25,16 +25,11 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 # Fromating the token
-async def get_token_from_cookie(request: Request) -> str:
+async def get_token_from_cookie(request: Request) -> str | None:
 
-    token = request.cookies.get("access_token")
+    token = request.cookies.get("access_token", None)
 
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authenticated"
-        )
-
-    if token.startswith("Bearer "):
+    if token is not None and token.startswith("Bearer "):
         token = token.split(" ")[1]
 
     return token
@@ -42,10 +37,15 @@ async def get_token_from_cookie(request: Request) -> str:
 
 # decoding and verifying the jwt token
 async def get_current_user(
-    token: Annotated[str, Depends(get_token_from_cookie)],
+    token: Annotated[str | None, Depends(get_token_from_cookie)],
     db: AsyncSession = Depends(get_db),
 ) -> User | None:
 
+    if token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not Authenticated"
+        )
+    
     try:
         payload = jwt.decode(
             token, settings.secret_key, algorithms=[settings.algorithm]
@@ -84,6 +84,44 @@ async def get_current_active_user(
         )
 
     return current_user
+
+async def get_current_optional_user(
+    token: Annotated[str | None, Depends(get_token_from_cookie)],
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+
+    if token is None:
+        return None
+
+    try:
+        payload = jwt.decode(
+            token, settings.secret_key, algorithms=[settings.algorithm]
+        )
+        user_id = payload.get("uid")
+
+        if user_id is None or payload.get("type") != "access":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token Invalid or expired",
+            )
+
+        stmt = await db.execute(select(User).where(User.id == user_id))
+
+        return stmt.scalar_one_or_none()
+
+    except Exception as e:
+       return None
+
+
+async def get_current_active_optional_user(
+    current_user: Annotated[User | None, Depends(get_current_optional_user)],
+) -> User | None:
+
+    if current_user is not None and current_user.disabled:
+        return None
+    
+    return current_user
+    
 
 
 async def validate_refresh_token(refresh_token: str, db: AsyncSession) -> int:

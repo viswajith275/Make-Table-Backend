@@ -18,12 +18,12 @@ router = APIRouter()
 async def get_timetable_entries_class(
     request: Request,
     class_id: int,
-    current_user: User = Depends(deps.get_current_active_user),
+    current_user: User | None = Depends(deps.get_current_active_optional_user),
     db: AsyncSession = Depends(deps.get_db),
 ):
 
     return await timetable_entry_service.fetch_class_entries(
-        class_id=class_id, user_id=current_user.id, db=db
+        class_id=class_id, user_id= None if current_user is None else current_user.id, db=db
     )
 
 
@@ -34,10 +34,10 @@ async def get_timetable_entries_class(
 async def get_timetable_entries_teacher(
     request: Request,
     teacher_id: int,
-    current_user: User = Depends(deps.get_current_active_user),
+    current_user: User | None = Depends(deps.get_current_active_optional_user),
     db: AsyncSession = Depends(deps.get_db),
 ):
 
     return await timetable_entry_service.fetch_teacher_entries(
-        teacher_id=teacher_id, user_id=current_user.id, db=db
+        teacher_id=teacher_id, user_id= None if current_user is None else current_user.id, db=db
     )

@@ -9,7 +9,7 @@ from app.models.teacher import Teacher
 from app.models.timetable_entry import TimeTableEntry
 
 
-async def fetch_class_entries(class_id: int, user_id: int, db: AsyncSession) -> Class:
+async def fetch_class_entries(class_id: int, user_id: int | None, db: AsyncSession) -> Class:
 
     stmt = await db.execute(
         select(Class)
@@ -31,7 +31,7 @@ async def fetch_class_entries(class_id: int, user_id: int, db: AsyncSession) -> 
 
     if (
         class_.timetable.view_status == TimeTableViewStatus.Private
-        and class_.user_id != user_id
+        and ( user_id is None or class_.user_id != user_id )
     ):
         raise NotFound("Class not found")
 
@@ -42,7 +42,7 @@ async def fetch_class_entries(class_id: int, user_id: int, db: AsyncSession) -> 
 
 
 async def fetch_teacher_entries(
-    teacher_id: int, user_id: int, db: AsyncSession
+    teacher_id: int, user_id: int | None, db: AsyncSession
 ) -> Teacher:
 
     stmt = await db.execute(
@@ -65,7 +65,7 @@ async def fetch_teacher_entries(
 
     if (
         teacher.timetable.view_status == TimeTableViewStatus.Private
-        and teacher.user_id != user_id
+        and ( user_id is None or teacher.user_id != user_id )
     ):
         raise NotFound("Teacher not found")
 

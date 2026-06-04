@@ -65,7 +65,7 @@ class SubjectCreate(BaseModel):
             raise ValueError("Cannot assign lab classes to a non lab subject!")
 
         if self.min_classes_day is not None and self.max_classes_day is not None:
-            if self.min_classes_day < 1:
+            if self.min_classes_day < 0:
                 raise ValueError("min classes per day should not be less than 1!")
 
             if self.max_classes_day < 1:
