@@ -34,7 +34,20 @@ class ClassCreate(BaseModel):
         return v
 
 
-class ClassUpdate(ClassCreate):
+class ClassUpdate(BaseModel):
     class_name: Optional[str] = None
     room_name: Optional[str] = None
-    isLab: Optional[bool] = None
+    
+    @field_validator("class_name")
+    @classmethod
+    def class_name_validator(cls, v: str | None) -> str | None:
+        if v is not None and len(v) > 25:
+            raise ValueError("class name length cannot be greater than 25!")
+        return v
+
+    @field_validator("room_name")
+    @classmethod
+    def room_name_validator(cls, v: str | None) -> str | None:
+        if v is not None and len(v) > 25:
+            raise ValueError("room name length cannot be greater than 25!")
+        return v

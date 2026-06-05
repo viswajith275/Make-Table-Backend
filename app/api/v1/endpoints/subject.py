@@ -59,11 +59,10 @@ async def create_subject(
 
 
 @router.patch(
-    "/timetables/{timetable_id}/subjects/{id}",
+    "/subjects/{id}",
     response_model=subject.UniqueSubjectResponse,
 )
 async def update_subject(
-    timetable_id: int,
     id: int,
     request: Request,
     subject_patch: subject.SubjectUpdate,
@@ -72,7 +71,6 @@ async def update_subject(
 ):
 
     return await subject_service.update_subject(
-        timetable_id=timetable_id,
         user_id=current_user.id,
         subject_id=id,
         subject_patch=subject_patch,

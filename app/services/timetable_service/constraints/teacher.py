@@ -29,7 +29,7 @@ def apply_teacher_weekly_limit(builder: "TimeTableGenerator") -> None:
         assigned_to_teacher[assignment.teacher.name].append(assignment)
 
     for teacher_name, teacher_assignments in assigned_to_teacher.items():
-        max_per_week = teacher_assignments[0].teacher.max_classes_day
+        max_per_week = teacher_assignments[0].teacher.max_classes_week
         if max_per_week is None:
             continue
 

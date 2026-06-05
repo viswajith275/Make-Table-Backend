@@ -15,7 +15,7 @@ router = APIRouter()
     "/classes/{class_id}/entries",
     response_model=timetable_entry.ClassEntryResponse,
 )
-async def get_timetable_entries_class(
+async def fetch_class_timetable_entries(
     request: Request,
     class_id: int,
     current_user: User | None = Depends(deps.get_current_active_optional_user),
@@ -31,7 +31,7 @@ async def get_timetable_entries_class(
     "/teacher/{teacher_id}/entries",
     response_model=timetable_entry.TeacherEntryResponse,
 )
-async def get_timetable_entries_teacher(
+async def fetch_teacher_timetable_entries(
     request: Request,
     teacher_id: int,
     current_user: User | None = Depends(deps.get_current_active_optional_user),

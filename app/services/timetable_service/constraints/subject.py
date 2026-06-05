@@ -10,7 +10,7 @@ def apply_subject_minimum_daily_limit(builder: "TimeTableGenerator") -> None:
 
         if min_subject_daily_val is not None:
             for d in builder.days:
-                error_msg = f"Min daily classes does not meet for {assignment.subject.name} on {builder.index_to_day[d].value} (required: {min_subject_daily_val}"
+                error_msg = f"Min daily classes does not meet for {assignment.subject.name} on {builder.index_to_day[d].value} (required: {min_subject_daily_val})"
                 slack = builder.create_slack(
                     name="subject minimum classes per day",
                     error_msg=error_msg,
@@ -267,11 +267,9 @@ def apply_subject_hardness(builder: "TimeTableGenerator") -> None:
 
     # Applying that hard subjects appear earlier than easy subjects
 
-    slot_cost = {s: s**2 for s in builder.slots}
-
     builder.silent_minimization.extend(
         builder.shifts[(assignment.id, d, s)]
-        * slot_cost[s]
+        * s
         * builder.hardness_map[assignment.subject.hardness]
         for assignment in builder.assignments
         for d in builder.days
@@ -287,7 +285,6 @@ def apply_hard_subject_distances(builder: "TimeTableGenerator") -> None:
         assignment
         for assignment in builder.assignments
         if assignment.subject.hardness.value == "High"
-        and getattr(assignment.subject, "min_classes_consecutive", 0) < 2
     ]
 
     for d in builder.days:
@@ -295,7 +292,7 @@ def apply_hard_subject_distances(builder: "TimeTableGenerator") -> None:
             for a2 in hard_subjects[i + 1 :]:
                 for s1 in builder.slots:
                     for s2 in builder.slots:
-                        if s1 >= s2 or abs(s2 - s1) > builder.max_concern_distance:
+                        if s1 >= s2 or abs(s2 - s1) <= builder.max_concern_distance:
                             continue
 
                         distance = s2 - s1

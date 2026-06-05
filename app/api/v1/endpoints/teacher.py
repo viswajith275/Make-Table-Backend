@@ -12,7 +12,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/timetables/{timetable_id}/teachers", response_model=List[teacher.TeacherResponse]
+    "/timetables/{timetable_id}/teachers", response_model=List[teacher.UniqueTeacherResponse]
 )
 async def fetch_timetable_teachers(
     request: Request,
@@ -59,11 +59,10 @@ async def create_teacher(
 
 
 @router.patch(
-    "/timetables/{timetable_id}/teachers/{id}",
+    "/teachers/{id}",
     response_model=teacher.UniqueTeacherResponse,
 )
 async def update_teacher(
-    timetable_id: int,
     id: int,
     request: Request,
     teacher_patch: teacher.TeacherUpdate,
@@ -72,7 +71,6 @@ async def update_teacher(
 ):
 
     return await teacher_service.update_teacher(
-        timetable_id=timetable_id,
         user_id=current_user.id,
         teacher_id=id,
         teacher_patch=teacher_patch,

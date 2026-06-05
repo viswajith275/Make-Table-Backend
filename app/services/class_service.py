@@ -61,20 +61,33 @@ async def fetch_timetable_classes(
     timetable_id: int, user_id: int, db: AsyncSession
 ) -> List[Class]:
     stmt = await db.execute(
-        select(TimeTable)
-        .where(TimeTable.id == timetable_id, TimeTable.user_id == user_id)
-        .options(selectinload(TimeTable.classes))
+        select(Class)
+        .where(Class.timetable_id == timetable_id, Class.user_id == user_id)
     )
-    timetable = stmt.scalar_one_or_none()
+    classes = stmt.scalars().all()
 
-    if timetable is None:
-        raise NotFound("TimeTable not found!")
+    if classes is None:
+        raise NotFound("Class not found!")
 
-    return timetable.classes
+    return classes
+
+
+async def fetch_timetable_lab_classes(
+    timetable_id: int, user_id: int, db: AsyncSession
+) -> List[Class]:
+    stmt = await db.execute(
+        select(Class)
+        .where(Class.timetable_id == timetable_id, Class.user_id == user_id, Class.isLab)
+    )
+    lab_classes = stmt.scalars().all()
+
+    if lab_classes is None:
+        raise NotFound("Class not found!")
+
+    return lab_classes
 
 
 async def update_class(
-    timetable_id: int,
     class_id: int,
     user_id: int,
     class_patch: ClassUpdate,
@@ -86,14 +99,23 @@ async def update_class(
     if not patch_data:
         raise BadRequest("Nothing to update!")
 
-    class_name = patch_data.get("class_name")
+    stmt = await db.execute(
+        select(Class).where(Class.id == class_id, Class.user_id == user_id).options(joinedload(Class.timetable))
+    )
+    class_obj = stmt.scalar_one_or_none()
+
+    if class_obj is None:
+        raise NotFound("Class not found!")
+
+    class_name = patch_data.get("class_name", None)
 
     if class_name is not None:
         stmt = await db.execute(
             select(
                 exists().where(
                     Class.class_name == class_name,
-                    Class.timetable_id == timetable_id,
+                    Class.timetable_id == class_obj.timetable_id,
+                    Class.id != class_obj.id,
                     Class.user_id == user_id,
                 )
             )
@@ -103,23 +125,8 @@ async def update_class(
         if existing:
             raise Conflict("This class already exists!")
 
-    stmt = await db.execute(
-        select(TimeTable).where(
-            TimeTable.id == timetable_id, TimeTable.user_id == user_id
-        )
-    )
-    timetable = stmt.scalars().first()
-
-    if timetable is not None and timetable.status == TimeTableStatus.Processing:
+    if class_obj.timetable.status == TimeTableStatus.Processing:
         raise Conflict("The timetable is being processed! wait till completion")
-
-    stmt = await db.execute(
-        select(Class).where(Class.id == class_id, Class.user_id == user_id)
-    )
-    class_obj = stmt.scalar_one_or_none()
-
-    if class_obj is None:
-        raise NotFound("Class not found!")
 
     for key, value in patch_data.items():
         setattr(class_obj, key, value)

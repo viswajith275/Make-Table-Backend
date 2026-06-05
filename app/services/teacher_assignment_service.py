@@ -120,22 +120,20 @@ async def fetch_teacher_assignments(
 ) -> List[TeacherAssignment]:
 
     stmt = await db.execute(
-        select(TimeTable)
-        .where(TimeTable.id == timetable_id, TimeTable.user_id == user_id)
+        select(TeacherAssignment)
+        .where(TeacherAssignment.timetable_id == timetable_id, TeacherAssignment.user_id == user_id)
         .options(
-            selectinload(TimeTable.assignments).options(
                 joinedload(TeacherAssignment.class_),
                 joinedload(TeacherAssignment.subject),
                 joinedload(TeacherAssignment.teacher),
-            )
         )
     )
-    timetable = stmt.scalar_one_or_none()
+    teacher_assignments = stmt.scalars().all()
 
-    if timetable is None:
-        raise NotFound("TimeTable not found!")
+    if teacher_assignments is None:
+        raise NotFound("Assignment not found!")
 
-    return timetable.assignments
+    return teacher_assignments
 
 
 async def update_assignment(

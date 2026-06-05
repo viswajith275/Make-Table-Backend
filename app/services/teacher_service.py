@@ -62,16 +62,15 @@ async def fetch_timetable_teachers(
 ) -> List[Teacher]:
 
     stmt = await db.execute(
-        select(TimeTable)
-        .where(TimeTable.id == timetable_id, TimeTable.user_id == user_id)
-        .options(selectinload(TimeTable.teachers))
+        select(Teacher)
+        .where(Teacher.timetable_id == timetable_id, Teacher.user_id == user_id)
     )
-    timetable = stmt.scalar_one_or_none()
+    teachers = stmt.scalars().all()
 
-    if timetable is None:
-        raise NotFound("TimeTable not found!")
+    if teachers is None:
+        raise NotFound("Teacher not found!")
 
-    return timetable.teachers
+    return teachers
 
 
 async def fetch_teacher(user_id: int, teacher_id: int, db: AsyncSession) -> Teacher:
@@ -88,7 +87,6 @@ async def fetch_teacher(user_id: int, teacher_id: int, db: AsyncSession) -> Teac
 
 
 async def update_teacher(
-    timetable_id: int,
     user_id: int,
     teacher_id: int,
     teacher_patch: TeacherUpdate,
@@ -99,14 +97,23 @@ async def update_teacher(
 
     if not patch_data:
         raise BadRequest("Nothing to update!")
+    
+    stmt = await db.execute(
+        select(Teacher).where(Teacher.id == teacher_id, Teacher.user_id == user_id).options(joinedload(Teacher.timetable))
+    )
+    teacher_obj = stmt.scalar_one_or_none()
 
-    teacher_name = patch_data.get("name")
+    if teacher_obj is None:
+        raise NotFound("Teacher not found!")
+
+    teacher_name = patch_data.get("name", None)
     if teacher_name is not None:
         stmt = await db.execute(
             select(
                 exists().where(
                     Teacher.name == teacher_name,
-                    Teacher.timetable_id == timetable_id,
+                    Teacher.id != teacher_obj.id,
+                    Teacher.timetable_id == teacher_obj.timetable_id,
                     Teacher.user_id == user_id,
                 )
             )
@@ -116,23 +123,8 @@ async def update_teacher(
         if existing:
             raise Conflict("This teacher already exists!")
 
-    stmt = await db.execute(
-        select(TimeTable).where(
-            TimeTable.id == timetable_id, TimeTable.user_id == user_id
-        )
-    )
-    timetable = stmt.scalar_one_or_none()
-
-    if timetable is not None and timetable.status == TimeTableStatus.Processing:
+    if teacher_obj.timetable.status == TimeTableStatus.Processing:
         raise Conflict("The timetable is being processed! wait till completion")
-
-    stmt = await db.execute(
-        (select(Teacher).where(Teacher.id == teacher_id, Teacher.user_id == user_id))
-    )
-    teacher_obj = stmt.scalar_one_or_none()
-
-    if teacher_obj is None:
-        raise NotFound("Teacher not found!")
 
     for key, value in patch_data.items():
         setattr(teacher_obj, key, value)

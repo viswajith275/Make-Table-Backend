@@ -110,7 +110,7 @@ async def fetch_timetable_subjects(
     subjects = stmt.scalars().all()
 
     if subjects is None:
-        raise NotFound("TimeTable not found!")
+        raise NotFound("Subject not found!")
 
     return subjects
 
@@ -131,7 +131,6 @@ async def fetch_subject(user_id: int, subject_id: int, db: AsyncSession) -> Subj
 
 
 async def update_subject(
-    timetable_id: int,
     user_id: int,
     subject_id: int,
     subject_patch: SubjectUpdate,
@@ -143,13 +142,26 @@ async def update_subject(
     if not patch_data:
         raise BadRequest("Nothing to update!")
 
-    subject_name = patch_data.get("name")
+    stmt = await db.execute(
+        select(Subject)
+        .where(Subject.id == subject_id, Subject.user_id == user_id)
+        .options(selectinload(Subject.lab_classes), joinedload(Subject.timetable))
+    )
+
+    subject_obj = stmt.scalar_one_or_none()
+
+    if subject_obj is None:
+        raise NotFound("Subject not found!")
+
+    subject_name = patch_data.get("name", None)
+
     if subject_name is not None:
         stmt = await db.execute(
             select(
                 exists().where(
                     Subject.name == subject_name,
-                    Subject.timetable_id == timetable_id,
+                    Subject.id != subject_obj.id,
+                    Subject.timetable_id == subject_obj.timetable_id,
                     Subject.user_id == user_id,
                 )
             )
@@ -159,28 +171,10 @@ async def update_subject(
         if existing:
             raise Conflict("This Subject already exists!")
 
-    stmt = await db.execute(
-        select(TimeTable).where(
-            TimeTable.id == timetable_id, TimeTable.user_id == user_id
-        )
-    )
-    timetable = stmt.scalar_one_or_none()
-
-    if timetable is not None and timetable.status == TimeTableStatus.Processing:
+    if subject_obj.timetable.status == TimeTableStatus.Processing:
         raise Conflict("The timetable is being processed! wait till completion")
 
     lab_classes = patch_data.pop("lab_classes", None)
-
-    stmt = await db.execute(
-        select(Subject)
-        .where(Subject.id == subject_id, Subject.user_id == user_id)
-        .options(selectinload(Subject.lab_classes))
-    )
-
-    subject_obj = stmt.scalar_one_or_none()
-
-    if subject_obj is None:
-        raise NotFound("Subject not found!")
 
     if patch_data:
         for key, value in patch_data.items():
@@ -192,7 +186,7 @@ async def update_subject(
                 stmt = await db.execute(
                     select(Class).where(
                         Class.id == id,
-                        Class.timetable_id == timetable_id,
+                        Class.timetable_id == subject_obj.timetable_id,
                         Class.isLab,
                     )
                 )

@@ -42,12 +42,22 @@ async def create_class(
         db=db,
     )
 
+@router.get("/timetables/{timetable_id}/lab-classes", response_model=List[class_.ClassResponse])
+async def fetch_timetable_lab_classes(
+    request: Request,
+    timetable_id: int,
+    current_user: User = Depends(deps.get_current_active_user),
+    db: AsyncSession = Depends(deps.get_db),
+):
+
+    return await class_service.fetch_timetable_lab_classes(
+        timetable_id=timetable_id, user_id=current_user.id, db=db
+    )
 
 @router.patch(
-    "/timetables/{timetable_id}/classes/{id}", response_model=class_.ClassResponse
+    "/classes/{id}", response_model=class_.ClassResponse
 )
 async def update_class(
-    timetable_id: int,
     id: int,
     request: Request,
     class_patch: class_.ClassUpdate,
@@ -56,7 +66,6 @@ async def update_class(
 ):
 
     return await class_service.update_class(
-        timetable_id=timetable_id,
         user_id=current_user.id,
         class_id=id,
         class_patch=class_patch,

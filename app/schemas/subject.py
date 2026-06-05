@@ -14,17 +14,17 @@ class SubjectResponse(BaseModel):
     isLab: bool
     hardness: Hardness
     rgb_code: str
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class UniqueSubjectResponse(SubjectResponse):
     min_classes_day: Optional[int] = None
     max_classes_day: Optional[int] = None
     min_classes_week: Optional[int] = None
     max_classes_week: Optional[int] = None
     min_classes_consecutive: Optional[int] = None
     max_classes_consecutive: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UniqueSubjectResponse(SubjectResponse):
     lab_classes: Optional[List[ClassResponse]] = None
 
     model_config = ConfigDict(from_attributes=True)

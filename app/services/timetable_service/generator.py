@@ -53,9 +53,9 @@ class TimeTableGenerator:
         self.hardness_map: dict[Hardness, int] = {
             Hardness.Low: 500,
             Hardness.Med: 1_000,
-            Hardness.High: 2_000,
+            Hardness.High: 1_500,
         }
-        self.distance_weight: int = 5
+        self.distance_weight: int = 2_500
         self.max_concern_distance: int = 2
         self.weight: int = 50_000
 
