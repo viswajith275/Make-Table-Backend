@@ -34,6 +34,7 @@ class TimeTableGenerator:
         self.id_to_assignment_map: dict[int, TeacherAssignmentData] = {
             a.id: a for a in self.assignments
         }
+        self.total_slots = timetable_data.slots
         self.slots = range(1, timetable_data.slots + 1)
 
         self.index_to_day: dict[int, WeekDayEnum] = {

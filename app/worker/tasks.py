@@ -62,6 +62,7 @@ def generate_timetable_task(
                 return
 
             if not timetable_entries:
+                timetable.violations = violations_data
                 timetable.status = TimeTableStatus.Failed
                 db.commit()
                 return

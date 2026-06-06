@@ -269,11 +269,11 @@ def apply_subject_hardness(builder: "TimeTableGenerator") -> None:
 
     builder.silent_minimization.extend(
         builder.shifts[(assignment.id, d, s)]
-        * s
+        * (s - builder.total_slots // 2 + 1)
         * builder.hardness_map[assignment.subject.hardness]
         for assignment in builder.assignments
         for d in builder.days
-        for s in builder.slots
+        for s in range(builder.total_slots // 2, builder.total_slots + 1)
     )
 
 
@@ -292,7 +292,7 @@ def apply_hard_subject_distances(builder: "TimeTableGenerator") -> None:
             for a2 in hard_subjects[i + 1 :]:
                 for s1 in builder.slots:
                     for s2 in builder.slots:
-                        if s1 >= s2 or abs(s2 - s1) <= builder.max_concern_distance:
+                        if s1 >= s2 or abs(s2 - s1) >= builder.max_concern_distance:
                             continue
 
                         distance = s2 - s1
