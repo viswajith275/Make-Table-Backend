@@ -12,7 +12,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/timetables/{timetable_id}/subjects", response_model=List[subject.SubjectResponse]
+    "/timetables/{timetable_id}/subjects", response_model=List[subject.UniqueSubjectResponse]
 )
 async def fetch_timetable_subjects(
     request: Request,
