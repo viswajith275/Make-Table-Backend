@@ -105,7 +105,7 @@ async def fetch_timetable_subjects(
     stmt = await db.execute(
         select(Subject).where(
             Subject.timetable_id == timetable_id, Subject.user_id == user_id
-        )
+        ).options(selectinload(Subject.lab_classes))
     )
     subjects = stmt.scalars().all()
 

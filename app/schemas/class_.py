@@ -9,7 +9,6 @@ class ClassResponse(BaseModel):
     class_name: str
     room_name: str
     isLab: bool
-    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
