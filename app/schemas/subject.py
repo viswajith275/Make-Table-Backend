@@ -19,12 +19,12 @@ class SubjectResponse(BaseModel):
     max_classes_week: Optional[int] = None
     min_classes_consecutive: Optional[int] = None
     max_classes_consecutive: Optional[int] = None
-    lab_classes: Optional[List[ClassResponse]] = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class UniqueSubjectResponse(SubjectResponse):
+    lab_classes: Optional[List[ClassResponse]] = None
 
     model_config = ConfigDict(from_attributes=True)
 
