@@ -16,7 +16,7 @@ services:
     envGroups:
       - timetable-shared-env
 
-envGroups:
+envVarGroups:
   - name: timetable-shared-env
     envVars:
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
