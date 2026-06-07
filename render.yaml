@@ -13,8 +13,8 @@ services:
         sync: false #Neon/Supabase URL
       - key: REDIS_URL
         sync: false
-    envGroups:
-      - timetable-shared-env
+      # This is the correct way to link your environment group:
+      - fromGroup: timetable-shared-env
 
 envVarGroups:
   - name: timetable-shared-env
