@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
 from app.models.user import User
+from app.core.rate_limiter import limiter
 from app.schemas import generation
 from app.services.timetable_service import timetable_service
 
@@ -12,6 +13,7 @@ router = APIRouter()
 @router.post(
     "/timetable/{timetable_id}/generate", response_model=generation.GenerateResponse
 )
+@limiter.limit("1/minute")
 async def create_generation_task(
     timetable_id: int,
     request: Request,

@@ -6,7 +6,7 @@ load_dotenv()
 
 class Settings(BaseSettings):
     APP_NAME: str = "TimeTable Backend Remake"
-    database_url: str = ""
+    sync_database_url: str = ""
     secret_key: str = ""
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
@@ -16,9 +16,9 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
 
     @property
-    def sync_database_url(self) -> str:
-        # removes +asyncpg from the async
-        return self.database_url.replace("postgresql+asyncpg://", "postgresql://")
+    def database_url(self) -> str:
+        # add +asyncpg
+        return self.sync_database_url.replace("postgresql://", "postgresql+asyncpg://")
 
 
 settings = Settings()

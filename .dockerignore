@@ -1,7 +1,6 @@
 # Ignore local virtual environments
 .venv
-venv/
-env/
+
 
 # Ignore git
 .git

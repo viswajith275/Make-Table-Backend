@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
 from app.models.user import User
+from app.core.rate_limiter import limiter
 from app.schemas import class_
 from app.services import class_service
 

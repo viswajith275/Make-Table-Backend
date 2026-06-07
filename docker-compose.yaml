@@ -37,14 +37,11 @@ services:
     build: .
     command: alembic upgrade head
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/fastapitimetable
+      SYNC_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/fastapitimetable
       REDIS_URL: redis://redis:6379/0
       SECRET_KEY: ${SECRET_KEY:-f6ef82446b940077e6c35222a4a2ea00bdf13e17ee091a02e1b1d2afae076fa2e7a7accd7c277f13a250c173ed87771da62225b3898b877e2a5b460eee4d705d}
       ACCESS_TOKEN_EXPIRE_MINUTES: 15
       REFRESH_TOKEN_EXPIRE_DAYS: 7
-      UPLOAD_DIRECTORY: static/images
-      MAX_IMAGE_SIZE: 10485760
-      BIAS_FACTOR: 1.5
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,7 +57,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/fastapitimetable
+      SYNC_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/fastapitimetable
       REDIS_URL: redis://redis:6379/0
       SECRET_KEY: ${SECRET_KEY:-f6ef82446b940077e6c35222a4a2ea00bdf13e17ee091a02e1b1d2afae076fa2e7a7accd7c277f13a250c173ed87771da62225b3898b877e2a5b460eee4d705d}
       ACCESS_TOKEN_EXPIRE_MINUTES: 15
@@ -81,7 +78,7 @@ services:
       dockerfile: Dockerfile
     container_name: timetable_celery
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/fastapitimetable
+      SYNC_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/fastapitimetable
       REDIS_URL: redis://redis:6379/0
       SECRET_KEY: ${SECRET_KEY:-f6ef82446b940077e6c35222a4a2ea00bdf13e17ee091a02e1b1d2afae076fa2e7a7accd7c277f13a250c173ed87771da62225b3898b877e2a5b460eee4d705d}
       ACCESS_TOKEN_EXPIRE_MINUTES: 15

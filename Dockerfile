@@ -27,8 +27,13 @@ COPY alembic.ini ./
 ENV PYTHONUNBUFFERED=1
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')" || exit 1
+#HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+#    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')" || exit 1
 
 # Run alembic migrations and then uvicorn
+# Copy the Render startup script and make it executable
+COPY render-start.sh .
+RUN chmod +x render-start.sh
+
+# Leave your default CMD as just the web server for local development
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8000"]

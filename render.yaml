@@ -1,0 +1,36 @@
+version: "1"
+
+services:
+  - type: web
+    name: timetable-api
+    env: docker
+    region: singapore 
+    plan: free 
+    # It overrides the Dockerfile locally just for Render
+    dockerCommand: ./render-start.sh
+    envVars:
+      - key: DATABASE_URL
+        sync: false #Neon/Supabase URL
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: timetable-redis
+          property: connectionString
+    envGroups:
+      - timetable-shared-env
+
+  - type: redis
+    name: timetable-redis
+    region: singapore
+    plan: free
+    maxmemoryPolicy: noeviction
+
+envGroups:
+  - name: timetable-shared-env
+    envVars:
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "15"
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: "7"
+      - key: SECRET_KEY
+        sync: false

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
 from app.core.config import settings
 from app.core.security import create_token
+from app.core.rate_limiter import limiter
 from app.models.user import User
 from app.schemas.user import (
     UserCreate,
@@ -40,6 +41,7 @@ async def google_login():
 
 
 @router.patch("/change-password")
+@limiter.limit("1/minute")
 async def change_user_password(
     request: Request,
     password_patch: PasswordUpdationRequest,
@@ -52,6 +54,7 @@ async def change_user_password(
 
 
 @router.patch("/change-username", response_model=UsersResponse)
+@limiter.limit("1/minute")
 async def change_username(
     request: Request,
     user_patch: UserUpdate,
@@ -66,6 +69,7 @@ async def change_username(
 @router.post(
     "/register", response_model=UsersResponse, status_code=status.HTTP_201_CREATED
 )
+@limiter.limit("10/minute")
 async def create_user(
     request: Request, user_in: UserCreate, db: AsyncSession = Depends(deps.get_db)
 ):
@@ -74,6 +78,7 @@ async def create_user(
 
 
 @router.post("/login", response_model=UsersResponse)
+@limiter.limit("10/minute")
 async def login_user(
     request: Request,
     response: Response,
@@ -126,6 +131,7 @@ async def login_user(
 
 
 @router.post("/refresh")
+@limiter.limit("1/minute")
 async def refresh_tokens(
     request: Request, response: Response, db: AsyncSession = Depends(deps.get_db)
 ):
