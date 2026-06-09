@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from fastapi.middleware.cors import CORSMiddleware
 from app.core.rate_limiter import limiter
 from app.api.v1.router import router
 from app.core.exceptions import (
