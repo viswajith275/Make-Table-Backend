@@ -7,6 +7,7 @@ load_dotenv()
 class Settings(BaseSettings):
     APP_NAME: str = "TimeTable Backend Remake"
     sync_database_url: str = ""
+    frontend_url: str = ""
     secret_key: str = ""
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 15

@@ -13,7 +13,6 @@ services:
         sync: false #Neon/Supabase URL
       - key: REDIS_URL
         sync: false
-      # This is the correct way to link your environment group:
       - fromGroup: timetable-shared-env
 
 envVarGroups:
@@ -24,4 +23,6 @@ envVarGroups:
       - key: REFRESH_TOKEN_EXPIRE_DAYS
         value: "7"
       - key: SECRET_KEY
+        sync: false
+      - key: FRONTEND_URL
         sync: false
