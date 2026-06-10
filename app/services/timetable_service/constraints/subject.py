@@ -57,7 +57,7 @@ def apply_subject_minimum_weekly_limit(builder: "TimeTableGenerator") -> None:
             slack = builder.create_slack(
                 name="subject minimum classes per week",
                 error_msg=error_msg,
-                weight=500_000,
+                weight=500,
             )
 
             builder.model.add(
@@ -84,7 +84,7 @@ def apply_subject_maximum_weekly_limit(builder: "TimeTableGenerator") -> None:
             slack = builder.create_slack(
                 name="subject maximum classes per week",
                 error_msg=error_msg,
-                weight=500_000,
+                weight=500,
             )
 
             builder.model.add(
@@ -128,7 +128,7 @@ def apply_subject_minimum_consecutive_limit(builder: "TimeTableGenerator") -> No
                             slack = builder.create_slack(
                                 name="subject single class",
                                 error_msg=error_msg,
-                                weight=500_000,
+                                weight=500,
                             )
 
                             builder.model.add(
@@ -140,7 +140,7 @@ def apply_subject_minimum_consecutive_limit(builder: "TimeTableGenerator") -> No
                             slack = builder.create_slack(
                                 name="subject impossible for consecutive class",
                                 error_msg=error_msg,
-                                weight=500_000,
+                                weight=500,
                             )
 
                             builder.model.add(slack >= 1).only_enforce_if(cur_slot)
@@ -173,7 +173,7 @@ def apply_subject_minimum_consecutive_limit(builder: "TimeTableGenerator") -> No
                                 slack = builder.create_slack(
                                     name="subject consecutive sequence broken",
                                     error_msg=error_msg,
-                                    weight=500_000,
+                                    weight=500,
                                 )
 
                                 builder.model.add(
@@ -185,7 +185,7 @@ def apply_subject_minimum_consecutive_limit(builder: "TimeTableGenerator") -> No
                             slack = builder.create_slack(
                                 name="subject not enough slots",
                                 error_msg=error_msg,
-                                weight=500_000,
+                                weight=500,
                             )
 
                             builder.model.add(slack >= 1).only_enforce_if(is_start)
@@ -213,7 +213,7 @@ def apply_subject_maximum_consecutive_limit(builder: "TimeTableGenerator") -> No
                     slack = builder.create_slack(
                         name="subject maximum consecutive class",
                         error_msg=error_msg,
-                        weight=500_000,
+                        weight=500,
                     )
 
                     builder.model.add(
@@ -251,7 +251,7 @@ def apply_subject_per_lab(builder: "TimeTableGenerator") -> None:
                     f"Lab class conflict of {class_} on {builder.index_to_day[d]}"
                 )
                 slack = builder.create_slack(
-                    name="lab conflicts", error_msg=error_msg, weight=100_000_000
+                    name="lab conflicts", error_msg=error_msg, weight=1_000
                 )
 
                 builder.model.add(

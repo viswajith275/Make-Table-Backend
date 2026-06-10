@@ -18,5 +18,5 @@ celery_app.conf.update(
     task_soft_time_limit=300,
     task_time_limit=330,
     worker_max_tasks_per_child=10,
-    worker_concurrency=2,  # Dont know about this
+    worker_concurrency=1,  # Dont know about this
 )

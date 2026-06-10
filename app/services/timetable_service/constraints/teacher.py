@@ -37,7 +37,7 @@ def apply_teacher_weekly_limit(builder: "TimeTableGenerator") -> None:
             f"Max weekly classes exceeded {teacher_name} (limit: {max_per_week})"
         )
         slack = builder.create_slack(
-            name="teacher weekly limit", error_msg=error_msg, weight=500_000
+            name="teacher weekly limit", error_msg=error_msg, weight=500
         )
         builder.model.add(
             sum(
@@ -65,7 +65,7 @@ def apply_teacher_daily_limit(builder: "TimeTableGenerator") -> None:
                 f"max weekly classes exceeded {teacher_name} (limit: {max_per_day})"
             )
             slack = builder.create_slack(
-                name="teacher daily limit", error_msg=error_msg, weight=500_000
+                name="teacher daily limit", error_msg=error_msg, weight=500
             )
             builder.model.add(
                 sum(
@@ -110,7 +110,7 @@ def apply_teacher_consecutive_limit(builder: "TimeTableGenerator") -> None:
                 slack = builder.create_slack(
                     name="teacher consecutive limit",
                     error_msg=error_msg,
-                    weight=500_000,
+                    weight=500,
                 )
 
                 builder.model.add(

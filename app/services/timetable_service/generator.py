@@ -47,18 +47,20 @@ class TimeTableGenerator:
         self.days = set([self.day_to_index[d] for d in timetable_data.days])
 
         self.model = cp_model.CpModel()
+        self.model.parameters.num_search_workers = 1
+        self.model.parameters.log_search_progress = True
         self.shifts = {}
 
         # Change values accordingly for better performaces (Dont forget)
 
         self.hardness_map: dict[Hardness, int] = {
-            Hardness.Low: 500,
-            Hardness.Med: 1_000,
-            Hardness.High: 1_500,
+            Hardness.Low: 5,
+            Hardness.Med: 10,
+            Hardness.High: 15,
         }
-        self.distance_weight: int = 2_500
+        self.distance_weight: int = 25
         self.max_concern_distance: int = 2
-        self.weight: int = 50_000
+        self.weight: int = 50
 
         self.error_slacks: dict[str, SlackTracker] = {}
         self.slack_counter: int = 0
@@ -233,8 +235,8 @@ class TimeTableGenerator:
                 ViolationCreate(
                     name="Invalid TimeTable Constraints",
                     description="TimeTable not possible, due to conflicts in TimeTable",
-                    severity=999999,
-                    violation_amount=999999,
+                    severity=9999,
+                    violation_amount=9999,
                 )
             )
 
