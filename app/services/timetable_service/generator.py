@@ -174,7 +174,7 @@ class TimeTableGenerator:
     ) -> tuple[List[TimeTableEntryCreate], List[ViolationCreate]]:
 
         solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = 30
+        solver.parameters.max_time_in_seconds = 120
         solver.parameters.num_search_workers = 1
         solver.parameters.random_polarity_ratio = (
             0.99  # 99% chance to choose 0 or 1 randomly
