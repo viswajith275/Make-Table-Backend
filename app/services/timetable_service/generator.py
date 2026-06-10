@@ -47,8 +47,6 @@ class TimeTableGenerator:
         self.days = set([self.day_to_index[d] for d in timetable_data.days])
 
         self.model = cp_model.CpModel()
-        self.model.parameters.num_search_workers = 1
-        self.model.parameters.log_search_progress = True
         self.shifts = {}
 
         # Change values accordingly for better performaces (Dont forget)
@@ -177,11 +175,12 @@ class TimeTableGenerator:
 
         solver = cp_model.CpSolver()
         solver.parameters.max_time_in_seconds = 30
-        solver.parameters.num_search_workers = 8
+        solver.parameters.num_search_workers = 1
         solver.parameters.random_polarity_ratio = (
             0.99  # 99% chance to choose 0 or 1 randomly
         )
-        solver.parameters.random_seed = randint(0, 10000)
+        solver.parameters.log_search_progress = True
+        solver.parameters.random_seed = randint(0, 1000)
 
         status = solver.Solve(self.model)
 
