@@ -115,8 +115,8 @@ async def login_user(
         key="access_token",
         value=f"Bearer {access_token}",
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=True,
+        samesite="none",
     )
 
     response.set_cookie(
@@ -155,8 +155,8 @@ async def refresh_tokens(
         key="access_token",
         value=f"Bearer {access_token}",
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=True,
+        samesite="none",
     )
 
     return {"message": "Token refreshed"}
