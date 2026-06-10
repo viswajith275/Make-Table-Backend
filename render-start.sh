@@ -8,4 +8,4 @@ alembic upgrade head
 celery -A app.core.celery worker --loglevel=info --concurrency=1 &
 
 # 3. Start FastAPI in the foreground
-uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+gunicorn app.main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
