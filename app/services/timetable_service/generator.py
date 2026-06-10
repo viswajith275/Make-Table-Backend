@@ -56,9 +56,9 @@ class TimeTableGenerator:
             Hardness.Med: 10,
             Hardness.High: 15,
         }
-        self.distance_weight: int = 25
+        self.distance_weight: int = 2
         self.max_concern_distance: int = 2
-        self.weight: int = 50
+        self.weight: int = 500
 
         self.error_slacks: dict[str, SlackTracker] = {}
         self.slack_counter: int = 0

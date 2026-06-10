@@ -14,7 +14,7 @@ def apply_subject_minimum_daily_limit(builder: "TimeTableGenerator") -> None:
                 slack = builder.create_slack(
                     name="subject minimum classes per day",
                     error_msg=error_msg,
-                    weight=500_000,
+                    weight=500,
                 )
 
                 builder.model.add(
@@ -36,7 +36,7 @@ def apply_subject_maximum_daily_limit(builder: "TimeTableGenerator") -> None:
                 slack = builder.create_slack(
                     name="subject maximum classes per day",
                     error_msg=error_msg,
-                    weight=500_000,
+                    weight=500,
                 )
 
                 builder.model.add(
