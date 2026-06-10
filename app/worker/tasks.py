@@ -13,8 +13,6 @@ from app.services.timetable_service.generator import TimeTableGenerator
 @celery_app.task(
     bind=True,
     acks_late=True,
-    soft_time_limit=120,
-    time_limit=150,
 )
 def generate_timetable_task(
     self: Task, timetable_id: int, user_id: int, force_generation: bool
