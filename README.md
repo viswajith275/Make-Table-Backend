@@ -18,7 +18,15 @@
 
 ## 🌟 What is Make-Table-Backend?
 
-**Make-Table-Backend** is a Python-powered RESTful API for institutional timetable management. It takes the nightmare out of scheduling classes, teachers, labs, and subjects by using clever constraint solving and asynchronous background generation; all easily started with a single `docker-compose up`. You focus on what matters—let the backend do the organizing!
+**Make-Table-Backend** is a Python-powered RESTful API for institutional timetable management. It takes the nightmare out of scheduling classes, teachers, labs, and subjects by using clever constraint solving and asynchronous processing to produce conflict-minimized schedules quickly and reliably.
+
+---
+
+## 🆕 What's New (Recent Additions)
+
+- Added an official frontend for the project. See the "Frontend" section below for the repository and quick run steps.
+- Clarified Quickstart and environment tips so new contributors can get running faster.
+- Minor docs improvements around endpoints and generation flow.
 
 ---
 
@@ -97,6 +105,24 @@ Dockerfile
 
 ---
 
+## 🖥️ Frontend
+
+This project now has an official frontend that integrates with Make-Table-Backend. You can find it here:
+
+https://github.com/geo-777/Make-Table-Frontend.git
+
+Quick steps to run the frontend locally (example):
+
+1. `git clone https://github.com/geo-777/Make-Table-Frontend.git`
+2. `cd Make-Table-Frontend`
+3. `npm install` (or `yarn`)
+4. Configure the frontend to point to your local backend (default: `http://localhost:8000`)
+5. `npm run dev` (or the project's start script)
+
+Note: The frontend repo contains its own README with specific setup and environment instructions — follow that for full details.
+
+---
+
 ## ⚡ Live Demo (How You’d Use It)
 
 1. **Register & Login:**
@@ -136,7 +162,7 @@ All endpoints are versioned at `/api/v1/`.
 
 ## 🤖 How Does Timetable Generation Work?
 
-1. You create all the “ingredients”: timetables, classes, teachers, subjects, assignments.
+1. You create all the “ingredients": timetables, classes, teachers, subjects, assignments.
 2. You POST to `/timetable/{tid}/generate`.
 3. Celery picks up the job, grabs constraints (teacher availability, class/subject/lab needs), and lets Google OR-Tools do the magic. 🧙‍♂️
 4. If there’s a conflict (say, a teacher double-booked or not enough time slots), it’ll surface those “violations.” You can force the timetable build if needed.
